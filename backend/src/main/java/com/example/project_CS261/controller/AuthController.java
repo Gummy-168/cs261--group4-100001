@@ -1,48 +1,77 @@
-// ฟังก์ชัน login
-
 package com.example.project_CS261.controller;
 
 import com.example.project_CS261.dto.LoginRequest;
 import com.example.project_CS261.dto.LoginResponse;
-import com.example.project_CS261.model.User;
-import com.example.project_CS261.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.project_CS261.dto.TuVerifyResponse;
+import com.example.project_CS261.service.TuAuthService;
+import com.example.project_CS261.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final TuAuthService tuAuthService;
+    private final UserService userService;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        Optional<User> user = userRepository.findByEmail(loginRequest.getEmail());
-
-        if (user.isPresent() && user.get().getPassword().equals(loginRequest.getPassword())) {
-            LoginResponse response = new LoginResponse(
-                    "Login successful",
-                    user.get().getEmail(),
-                    user.get().getName()
-            );
-            return ResponseEntity.ok(response);
-        }
-
-        return ResponseEntity.badRequest().body("Invalid email or password");
+    public AuthController(TuAuthService tuAuthService, UserService userService) {
+        this.tuAuthService = tuAuthService;
+        this.userService = userService;
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user) {
-        if (userRepository.existsByEmail(user.getEmail())) {
-            return ResponseEntity.badRequest().body("Email already exists");
-        }
+    /**
+     * Login ผ่าน TU API และบันทึก Login History เท่านั้น
+     */
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request,
+                                              HttpServletRequest httpRequest) {
+        try {
+            // 1. ตรวจสอบ username/password กับ TU API
+            TuVerifyResponse tuResponse = tuAuthService.verify(request.getUsername(), request.getPassword());
 
-        User savedUser = userRepository.save(user);
-        return ResponseEntity.ok("User registered successfully");
+            if (tuResponse != null && tuResponse.isStatus()) {
+                // 2. ดึง IP Address
+                String ipAddress = getClientIP(httpRequest);
+                
+                // 3. บันทึก Login History เท่านั้น
+                userService.saveLoginHistory(tuResponse, ipAddress);
+
+                // 4. ส่ง Response กลับไป (ข้อมูลจาก TU API)
+                LoginResponse success = new LoginResponse(
+                    true, 
+                    "Login Success", 
+                    tuResponse.getUsername(), 
+                    tuResponse.getDisplaynameTh(), 
+                    tuResponse.getEmail()
+                );
+                return ResponseEntity.ok(success);
+            } else {
+                return ResponseEntity.status(401).body(
+                    new LoginResponse(false, "Invalid credentials", null, null, null)
+                );
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                new LoginResponse(false, "Login failed: " + e.getMessage(), null, null, null)
+            );
+        }
+    }
+    
+    /**
+     * ฟังก์ชันดึง IP Address ของ Client
+     */
+    private String getClientIP(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip;
     }
 }

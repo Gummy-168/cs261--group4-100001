@@ -1,7 +1,17 @@
 package com.example.project_CS261.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "users")
 public class User {
@@ -9,29 +19,25 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String email;
-    private String password;
-    private String name;
+    @Column(unique = true, nullable = false, length = 50)
+    private String username; // รหัสนักศึกษา/บุคลากร จาก TU API
 
-    // Constructors ว่าเราเอาอะไรบ้าง
-    public User() {}
+    @Column(nullable = false, name = "displayname_th")
+    private String displaynameTh; // ชื่อภาษาไทย
 
-    public User(String email, String password, String name) {
-        this.email = email;
-        this.password = password;
-        this.name = name;
-    }
+    private String email; // อีเมล์จาก TU API
+    
+    private String faculty; // คณะ
+    
+    private String department; // สาขา/หน่วยงาน
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
-
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    // ไม่เก็บ password เพราะใช้ TU API ตรวจสอบทุกครั้ง
 }
