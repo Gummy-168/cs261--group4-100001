@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 
@@ -17,9 +18,11 @@ public class Event {
     private Long id;
 
     // FR-4 name/description; CoS fields
+    @Nationalized
     @Column(nullable = false, length = 200)
     private String title;
 
+    @Nationalized
     @Column(nullable = false, length = 2000)
     private String description;
 
@@ -30,6 +33,7 @@ public class Event {
     private LocalDateTime endAt;
 
     // FR-4: location
+    @Nationalized
     @Column(nullable = false, length = 300)
     private String location;
 
@@ -41,16 +45,20 @@ public class Event {
     private Integer reserved; // seats already taken
 
     // FR-6: category, unit/faculty
+    @Nationalized
     @Column(nullable = false, length = 100)
     private String category;
 
+    @Nationalized
     @Column(nullable = false, length = 150)
     private String organizerUnit;  // คณะ/หน่วยงานที่จัด
 
     // FR-4: organizer & contact
+    @Nationalized
     @Column(nullable = false, length = 120)
     private String organizerName;
 
+    @Nationalized
     @Column(nullable = false, length = 120)
     private String organizerContact; // email/phone/line id
 
