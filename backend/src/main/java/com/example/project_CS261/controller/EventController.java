@@ -9,6 +9,12 @@ import com.example.project_CS261.service.EventService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import java.util.List;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
+
 
 import java.util.List;
 
@@ -37,6 +43,20 @@ public class EventController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    // GET /api/events/search - Search and filter events
+    @GetMapping("/search")
+    public ResponseEntity<List<Event>> searchEvents(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        // เราจะส่ง Parameters ทั้งหมดนี้ไปให้ Service เพื่อทำการค้นหาต่อไป
+        List<Event> foundEvents = eventService.search(keyword, category, location, startDate, endDate);
+        return ResponseEntity.ok(foundEvents);
     }
 
     // POST /api/events - Create new event

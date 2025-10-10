@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.Nationalized;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,13 +20,19 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Nationalized // ใช้อันนี้ตัวเดียวพอ
     @Column(nullable = false, length = 255)
     private String title;
 
+    @Nationalized // ใช้อันนี้ตัวเดียวพอ
     @Column(length = 1000)
     private String description;
 
+    @Nationalized // ใช้อันนี้ตัวเดียวพอ
     private String location;
+
+    @Nationalized // ใช้อันนี้ตัวเดียวพอ
+    private String category;
 
     @Column(name = "startTime")
     private LocalDateTime startTime;
