@@ -18,9 +18,10 @@ public class TuAuthService {
     private final WebClient client;
 
     public TuAuthService(
-            @Value("${tuapi.url}") String tuApiUrl,
-            @Value("${tuapi.key}") String tuApiKey
+            @Value("${TU_API_URL:https://restapi.tu.ac.th/api/v1/auth/Ad/verify}") String tuApiUrl,
+            @Value("${TU_API_KEY}") String tuApiKey
     ) {
+        // ใช้ WebClient แบบปกติ จะใช้ SSL verification มาตรฐาน
         this.client = WebClient.builder()
                 .baseUrl(tuApiUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -29,11 +30,9 @@ public class TuAuthService {
     }
 
     public TuVerifyResponse verify(String username, String password) {
-        // 1. สร้างข้อมูลที่จะส่งไป TU API
         TuVerifyRequest body = new TuVerifyRequest(username, password);
 
         try {
-            // 2. ส่ง HTTP Request ไปที่ TU API
             TuVerifyResponse res = client.post()
                     .bodyValue(body)
                     .retrieve()
@@ -43,11 +42,9 @@ public class TuAuthService {
             if (res == null) {
                 throw new RuntimeException("Empty response from TU API");
             }
-            // 3. ได้ response กลับมา (ถ้า login ถูก จะได้ข้อมูลนักศึกษา)
             return res;
 
         } catch (WebClientResponseException e) {
-            // แปลง error ให้อ่านง่าย
             String msg = "TU API error: " + e.getStatusCode().value() + " " + e.getStatusText();
             if (e.getStatusCode().value() == 401) {
                 msg = "Unauthorized (ตรวจ Application-Key หรือสิทธิ์ channel)";
