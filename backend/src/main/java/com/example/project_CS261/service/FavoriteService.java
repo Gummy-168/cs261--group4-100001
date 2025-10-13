@@ -3,8 +3,10 @@ package com.example.project_CS261.service;
 import com.example.project_CS261.model.Favorite;
 import com.example.project_CS261.repository.FavoriteRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
+@Transactional
 @Service
 public class FavoriteService {
 
