@@ -9,6 +9,7 @@ import com.example.project_CS261.repository.UserRepository;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -77,5 +78,13 @@ public class NotificationService {
         } catch (Exception e) {
             System.err.println("Error sending email: " + e.getMessage());
         }
+    }
+
+    public void sendRealTimeUpdateNotification(User user, Event event) {
+        String subject = "ด่วน: กิจกรรม '" + event.getTitle() + "' มีการเปลี่ยนแปลง";
+        String body = "สวัสดีคุณ " + user.getDisplaynameTh() + ",\n\n" +
+                "กิจกรรม '" + event.getTitle() + "' ที่คุณสนใจมีการอัปเดตข้อมูลใหม่\n" +
+                "กรุณาตรวจสอบรายละเอียดล่าสุด";
+        sendEmail(user.getEmail(), subject, body);
     }
 }
