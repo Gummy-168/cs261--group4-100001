@@ -5,9 +5,13 @@ package com.example.project_CS261.repository;
 
 import com.example.project_CS261.model.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor; // 1. Import เพิ่ม
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
+    // <<< MERGED: เมธอดนี้มาจาก U2 (Event Browsing) สำหรับเรียงตามเวลา
+    List<Event> findAllByOrderByStartTimeAsc();
 }

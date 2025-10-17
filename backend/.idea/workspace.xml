@@ -5,16 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4cab43e1-b39a-40a2-bbac-1df81486d716" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/backend.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/docs/ฺBackend/backend_readme.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/dto/EventCardResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/dto/EventCreateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/dto/EventDetailResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/dto/EventUpdateRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/controller/EventController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/controller/EventController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/model/Event.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/model/Event.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/repository/EventRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/repository/EventRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/service/EventService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/service/EventService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/service/NotificationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/example/project_CS261/service/NotificationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/example/project_CS261/controller/EventController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/example/project_CS261/controller/EventController.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/example/project_CS261/model/Event.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/example/project_CS261/model/Event.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/example/project_CS261/repository/EventRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/example/project_CS261/repository/EventRepository.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/com/example/project_CS261/service/EventService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/example/project_CS261/service/EventService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/example/project_CS261/service/NotificationService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/example/project_CS261/service/NotificationService.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,11 +63,16 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "be/api-event-search",
+    "git-widget-placeholder": "be/backend",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/User/IdeaProjects/cs261--group4-100001/backend"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\User\IdeaProjects\cs261--group4-100001\backend\src\main\java\com\example\project_CS261\dto" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="Application" type="Application" factoryName="Application">
       <envs>
@@ -72,6 +83,15 @@
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
+    </configuration>
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2" />
     </configuration>
   </component>
   <component name="SharedIndexes">
