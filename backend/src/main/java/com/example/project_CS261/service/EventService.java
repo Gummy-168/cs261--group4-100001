@@ -10,16 +10,28 @@ import org.springframework.data.jpa.domain.Specification; // Import เพิ่
 import java.time.LocalDate;
 import java.time.LocalDateTime; // Import เพิ่ม
 import java.util.ArrayList; // Import เพิ่ม
+
+import com.example.project_CS261.repository.NotificationQueueRepository;
 import java.util.List;
 import jakarta.persistence.criteria.Predicate; // Import เพิ่ม
 
+import com.example.project_CS261.model.NotificationQueue;
+import com.example.project_CS261.model.User;
+import com.example.project_CS261.repository.UserRepository;
 
 @Service
 public class EventService {
     private final EventRepository repo;
+    private final NotificationService notificationService;
+    private final NotificationQueueRepository notificationQueueRepository;
+    private final UserRepository userRepository;
 
     public EventService(EventRepository repo) {
         this.repo = repo;
+        // 2. เพิ่มเข้าไปใน Constructor
+        this.notificationService = notificationService;
+        this.notificationQueueRepository = notificationQueueRepository;
+        this.userRepository = userRepository;
     }
 
     public List<Event> getAll() {
@@ -45,7 +57,18 @@ public class EventService {
         existed.setStartTime(e.getStartTime());
         existed.setEndTime(e.getEndTime());
 
-        return repo.save(existed);
+        Event updatedEvent = repo.save(existed);
+
+        // 3. --- ส่วนที่เพิ่มเข้ามา ---
+        // ค้นหา User ทุกคนที่ Favorite Event นี้ไว้
+        List<NotificationQueue> affectedQueues = notificationQueueRepository.findByActivityId(updatedEvent.getId());
+        for (NotificationQueue nq : affectedQueues) {
+            userRepository.findById(nq.getUserId()).ifPresent(user -> {
+                // ส่ง Real-time notification
+                notificationService.sendRealTimeUpdateNotification(user, updatedEvent);
+            });
+        }
+        return updatedEvent;
     }
 
     public void delete(Long id) {
