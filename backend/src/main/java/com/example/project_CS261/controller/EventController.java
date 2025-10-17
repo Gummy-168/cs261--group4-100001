@@ -23,13 +23,11 @@ public class EventController {
 
     private final EventService eventService;
 
-    // <<< MERGED: U2 - Event List (FR-1, FR-2)
     @GetMapping
     public ResponseEntity<List<EventCardResponse>> listAllEvents() {
         return ResponseEntity.ok(eventService.listAll());
     }
 
-    // <<< MERGED: U2 - Event Detail (FR-3 ถึง FR-12)
     @GetMapping("/{id}")
     public ResponseEntity<EventDetailResponse> getEventById(@PathVariable Long id) {
         try {
@@ -39,7 +37,6 @@ public class EventController {
         }
     }
 
-    // <<< MERGED: U4 - Search and filter events (FR-1 ถึง FR-8)
     @GetMapping("/search")
     public ResponseEntity<List<EventCardResponse>> searchEvents(
             @RequestParam(required = false) String keyword,
@@ -52,14 +49,12 @@ public class EventController {
         return ResponseEntity.ok(foundEvents);
     }
 
-    // <<< MERGED: U2 - Create new event (Admin/Testing)
     @PostMapping
     public ResponseEntity<EventDetailResponse> createEvent(@RequestBody EventCreateRequest req) {
         EventDetailResponse created = eventService.create(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // <<< MERGED: U2 - Update existing event
     @PutMapping("/{id}")
     public ResponseEntity<EventDetailResponse> updateEvent(@PathVariable Long id, @RequestBody EventUpdateRequest req) {
         try {
@@ -70,7 +65,6 @@ public class EventController {
         }
     }
 
-    // <<< MERGED: Standard Delete
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
         try {

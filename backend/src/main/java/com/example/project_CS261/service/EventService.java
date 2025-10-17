@@ -30,7 +30,6 @@ public class EventService {
     private final NotificationQueueRepository notificationQueueRepository;
     private final UserRepository userRepository;
 
-    // <<< MERGED: U2 - Create Logic
     public EventDetailResponse create(EventCreateRequest req) {
         validatePoster(req.getPosterUrl());
         Event event = Event.builder()
@@ -53,27 +52,23 @@ public class EventService {
         return toDetail(event);
     }
 
-    // <<< MERGED: U2 - List All Logic
     public List<EventCardResponse> listAll() {
         return eventRepository.findAllByOrderByStartTimeAsc().stream()
                 .map(this::toCard)
                 .toList();
     }
 
-    // <<< MERGED: U2 - Get One Logic
     public EventDetailResponse getOne(Long id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Event not found: " + id));
         return toDetail(event);
     }
 
-    // <<< MERGED: U2 Update Logic + U3 Real-time Notification Logic
     public EventDetailResponse update(Long id, EventUpdateRequest req) {
         Event existed = eventRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Event not found: " + id));
         boolean changed = false;
 
-        //... (Copy field update logic from U2)
         if (req.getStartTime() != null && !req.getStartTime().equals(existed.getStartTime())) {
             existed.setStartTime(req.getStartTime());
             changed = true;
@@ -105,7 +100,6 @@ public class EventService {
 
         Event updatedEvent = eventRepository.save(existed);
 
-        // <<< KEY MERGE POINT: U3 Real-time Notification Logic
         List<NotificationQueue> affectedQueues = notificationQueueRepository.findByActivityId(updatedEvent.getId());
         for (NotificationQueue nq : affectedQueues) {
             userRepository.findById(nq.getUserId()).ifPresent(user -> {
@@ -115,7 +109,6 @@ public class EventService {
         return toDetail(updatedEvent);
     }
 
-    // <<< MERGED: Standard Delete
     public void delete(Long id) {
         if (!eventRepository.existsById(id)) {
             throw new IllegalArgumentException("Event not found: " + id);
@@ -123,7 +116,6 @@ public class EventService {
         eventRepository.deleteById(id);
     }
 
-    // <<< MERGED: U4 Search Logic (adjusted to return DTO)
     public List<EventCardResponse> search(String keyword, String category, String location, LocalDate startDate, LocalDate endDate) {
         Specification<Event> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -141,19 +133,17 @@ public class EventService {
             }
             if (startDate != null) {
                 LocalDateTime startOfDay = startDate.atStartOfDay();
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startTime"), startOfDay));
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startAt"), startOfDay));
             }
             if (endDate != null) {
                 LocalDateTime endOfDay = endDate.atTime(23, 59, 59);
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startTime"), endOfDay));
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startAt"), endOfDay));
             }
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
-        // Map results to Card DTO
         return eventRepository.findAll(spec).stream().map(this::toCard).toList();
     }
 
-    // <<< MERGED: U2 Helper Methods
     private EventCardResponse toCard(Event e) {
         return EventCardResponse.builder()
                 .id(e.getId())

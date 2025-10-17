@@ -12,6 +12,5 @@ import java.util.List;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
-    // <<< MERGED: เมธอดนี้มาจาก U2 (Event Browsing) สำหรับเรียงตามเวลา
     List<Event> findAllByOrderByStartTimeAsc();
 }
