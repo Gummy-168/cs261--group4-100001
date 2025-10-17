@@ -14,8 +14,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // state สำหรับแอนิเมชัน
-  const [closing, setClosing] = useState(false); // true = ซ้ายกำลังยืดปิดฟอร์ม
+  // ใช้สำหรับเอฟเฟกต์ปิดแผงวิดีโอด้านซ้ายก่อนนำทาง
+  const [closing, setClosing] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,7 +57,7 @@ export default function Login() {
             muted
             loop
             playsInline
-            className="h-full w-full object-cover object-center mb-100"
+            className="h-full w-full object-cover object-center mb-100" 
           />
           <div className="absolute inset-0 bg-black/30" />
         </div>
@@ -67,27 +67,28 @@ export default function Login() {
       <div
         className={[
           'flex-1 flex items-center justify-center px-10',
-          'transition-opacity duration-3000',
+          'transition-opacity duration-[3000ms]', 
           closing ? 'opacity-0 pointer-events-none' : 'opacity-100',
         ].join(' ')}
       >
         <div className="w-full max-w-lg flex flex-col items-center justify-center">
-          <img src={Logo} alt="TU Logo" className="w-3/5 mb-30 -mt-20" />
+          <img src={Logo} alt="TU Logo" className="w-3/5 mb-30 -mt-20" /> 
 
           <h1 className="text-4xl sm:text-5xl font-extrabold mb-10 text-center tracking-tight">
             เข้าสู่ระบบ
           </h1>
 
+          {/* FORM เริ่ม */}
           <form onSubmit={handleSubmit} className="w-full space-y-7">
             <div>
               <label className="block mb-3 text-lg font-semibold text-gray-700">
-                รหัสนักศึกษา / อีเมลโดม
+                รหัสนักศึกษา
               </label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="รหัสนักศึกษา / อีเมลโดม"
+                placeholder="รหัสนักศึกษา"
                 className="w-full rounded-lg border border-gray-300 px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
                 required
               />
@@ -118,14 +119,24 @@ export default function Login() {
               <label htmlFor="remember" className="ml-3 text-base text-gray-700">
                 จดจำฉัน
               </label>
+              <a
+                href="https://accounts.tu.ac.th/Login.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto text-blue-600 hover:underline cursor-pointer"
+              >
+                ลืมรหัสผ่าน?
+              </a>
             </div>
 
+            {/* error อยู่ใน form */}
             {error && (
               <p className="text-base text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3">
                 {error}
               </p>
             )}
 
+            {/* ปุ่มอยู่ใน form */}
             <div className="flex gap-6 pt-4">
               <button
                 type="button"
@@ -143,6 +154,7 @@ export default function Login() {
               </button>
             </div>
           </form>
+          {/* FORM จบ */}
         </div>
       </div>
     </div>

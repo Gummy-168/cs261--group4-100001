@@ -3,51 +3,45 @@ import axios from 'axios';
 const API_URL = 'http://localhost:8080/api/auth';
 
 /**
- * Login ผ่าน TU API
- * @param {string} identifier - รหัสนักศึกษาหรืออีเมล
+ * Login กับ TU API
+ * @param {string} identifier - รหัสนักศึกษา
  * @param {string} password - รหัสผ่าน
- * @returns {Promise} Response จาก Backend
+ * @returns {Promise<any>} ข้อมูลตอบกลับจาก Backend
  */
 export const login = async (identifier, password) => {
-  // ลบช่องว่างหน้า-หลัง
   const username = (identifier || '').toString().trim();
 
-  // ตรวจสอบว่ามีข้อมูลครบหรือไม่
   if (!username || !password) {
-    throw new Error('กรุณากรอก Username และ Password');
+    throw new Error('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
   }
 
   try {
-    // ส่ง request ไปยัง Backend
     const response = await axios.post(`${API_URL}/login`, {
-      username: username,
-      password: password
+      username,
+      password,
     });
 
     return response.data;
   } catch (error) {
-    // จัดการ error
     if (error.response) {
-      // Backend ตอบกลับมา แต่เป็น error
-      throw new Error(error.response.data.message || 'Login failed');
+      throw new Error(error.response.data.message || 'เข้าสู่ระบบล้มเหลว');
     } else if (error.request) {
-      // ส่ง request ไปแล้ว แต่ไม่ได้ response
-      throw new Error('Cannot connect to server');
+      throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์');
     } else {
-      // Error อื่นๆ
       throw new Error(error.message);
     }
   }
 };
 
 /**
- * Register (ถ้ามี endpoint นี้)
+ * Register (เผื่อไว้ หากมี endpoint)
  */
 export const register = async (email, password, name) => {
   const response = await axios.post(`${API_URL}/register`, {
     email,
     password,
-    name
+    name,
   });
   return response.data;
 };
+
