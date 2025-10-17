@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { login } from '../services/authService';
-import Logo from '../assets/img/TULogo-02.png';
+import Logo from "../../assets/img/TULogo-02.png";
 
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
