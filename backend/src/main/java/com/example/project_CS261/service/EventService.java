@@ -26,9 +26,8 @@ public class EventService {
     private final NotificationQueueRepository notificationQueueRepository;
     private final UserRepository userRepository;
 
-    public EventService(EventRepository repo) {
+    public EventService(EventRepository repo, NotificationService notificationService, NotificationQueueRepository notificationQueueRepository, UserRepository userRepository) {
         this.repo = repo;
-        // 2. เพิ่มเข้าไปใน Constructor
         this.notificationService = notificationService;
         this.notificationQueueRepository = notificationQueueRepository;
         this.userRepository = userRepository;
