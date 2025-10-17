@@ -1,12 +1,8 @@
-//ทำหน้าที่:รับ HTTP Request จาก client (เช่น Browser, Postman, Frontend React ฯลฯ)
-//เรียกใช้ Service (EventService) เพื่อประมวลผล / จัดการข้อมูล
-//ส่ง HTTP Response กลับไป (พร้อม status code 200, 201, 404, 204 ฯลฯ)
-
 package com.example.project_CS261.controller;
 
-import com.example.project_CS261.model.Event;
+import com.example.project_CS261.dto.*;
 import com.example.project_CS261.service.EventService;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,57 +10,33 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/events")
+@RequiredArgsConstructor
 public class EventController {
-    
+
     private final EventService eventService;
 
-    public EventController(EventService eventService) {
-        this.eventService = eventService;
-    }
-
-    // GET /api/events - Get all events
+    // FR-1/2: Event List (sorted)
     @GetMapping
-    public ResponseEntity<List<Event>> getAllEvents() {
-        return ResponseEntity.ok(eventService.getAll());
+    public ResponseEntity<List<EventCardResponse>> list() {
+        return ResponseEntity.ok(eventService.listAll());
     }
 
-    // GET /api/events/{id} - Get one event by id
+    // FR-3/4/5/6/7/9/10/12: Event Detail
     @GetMapping("/{id}")
-    public ResponseEntity<Event> getEventById(@PathVariable Long id) {
-        try {
-            Event event = eventService.getOne(id);
-            return ResponseEntity.ok(event);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<EventDetailResponse> one(@PathVariable Long id) {
+        return ResponseEntity.ok(eventService.getOne(id));
     }
 
-    // POST /api/events - Create new event
+    // Admin/testing: create
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody Event event) {
-        Event created = eventService.create(event);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    public ResponseEntity<EventDetailResponse> create(@RequestBody EventCreateRequest req) {
+        return ResponseEntity.ok(eventService.create(req));
     }
 
-    // PUT /api/events/{id} - Update existing event
-    @PutMapping("/{id}")
-    public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Event event) {
-        try {
-            Event updated = eventService.update(id, event);
-            return ResponseEntity.ok(updated);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    // DELETE /api/events/{id} - Delete event
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
-        try {
-            eventService.delete(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+    // Admin/testing: update (marks edited when time/location changed)
+    @PatchMapping("/{id}")
+    public ResponseEntity<EventDetailResponse> update(@PathVariable Long id,
+                                                      @RequestBody EventUpdateRequest req) {
+        return ResponseEntity.ok(eventService.update(id, req));
     }
 }

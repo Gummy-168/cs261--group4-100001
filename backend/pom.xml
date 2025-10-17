@@ -5,14 +5,15 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Spring Boot Parent -->
+    <!-- ใช้ BOM ของ Spring Boot ดูแลเวอร์ชัน libs ให้เข้าชุดกัน -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.2</version>
-        <relativePath /> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
 
+    <!-- ให้ groupId/artifactId ตรงกับ package หลักของโปรเจกต์ -->
     <groupId>com.example</groupId>
     <artifactId>project-CS261</artifactId>
     <version>0.0.1-SNAPSHOT</version>
@@ -20,40 +21,39 @@
     <description>Demo project for Spring Boot (CS261)</description>
     <packaging>jar</packaging>
 
-    <!-- Properties -->
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- Dependencies -->
     <dependencies>
-        <!-- Spring Boot Starter Web -->
+        <!-- Web / REST -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Boot Starter Data JPA (เพิ่มตรงนี้) -->
+        <!-- JPA / Hibernate -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- Spring Boot Starter Validation -->
+        <!-- Bean validation (ใช้ใน DTO ได้) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- SQL Server JDBC driver -->
+        <!-- SQL Server JDBC: ใช้รุ่นสำหรับ JDK 17 -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
-            <version>12.2.0.jre11</version>
+            <version>12.4.2.jre11</version>
+            <scope>runtime</scope>
         </dependency>
 
-        <!-- Spring Boot DevTools -->
+        <!-- DevTools (เฉพาะตอนพัฒนา) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -61,14 +61,13 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Lombok -->
+        <!-- Lombok (ถ้าใช้ ให้ลงปลั๊กอิน + เปิด annotation processing) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring Boot Starter Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -76,12 +75,12 @@
         </dependency>
     </dependencies>
 
-    <!-- Build -->
     <build>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <!-- exclude lombok ขณะแพ็กจาร์ได้ ไม่มีปัญหา -->
                 <configuration>
                     <excludes>
                         <exclude>
@@ -93,5 +92,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
