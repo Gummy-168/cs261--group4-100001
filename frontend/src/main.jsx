@@ -17,19 +17,25 @@ function useAuthStore() {
       typeof window !== "undefined"
         ? localStorage.getItem("authToken") ?? sessionStorage.getItem("authToken")
         : null;
+    const storedUserId = 
+      typeof window !== "undefined"
+        ? localStorage.getItem("userId")
+        : null;
     return {
       loggedIn: Boolean(storedToken),
       token: storedToken,
       profile: null,
+      userId: storedUserId ? parseInt(storedUserId) : null,  // เพิ่ม userId
     };
   });
 
-  const login = useCallback(({ token, profile, remember = true } = {}) => {
+  const login = useCallback(({ token, profile, remember = true, userId } = {}) => {
     setState((prev) => ({
       ...prev,
       loggedIn: true,
       token: token ?? prev.token,
       profile: profile ?? prev.profile,
+      userId: userId ?? prev.userId,  // เพิ่ม userId
     }));
     if (token) {
       if (remember) {
@@ -40,12 +46,16 @@ function useAuthStore() {
         localStorage.removeItem("authToken");
       }
     }
+    if (userId) {
+      localStorage.setItem("userId", userId.toString());
+    }
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem("authToken");
     sessionStorage.removeItem("authToken");
-    setState({ loggedIn: false, token: null, profile: null });
+    localStorage.removeItem("userId");  // ลบ userId ด้วย
+    setState({ loggedIn: false, token: null, profile: null, userId: null });
   }, []);
 
   return useMemo(() => ({
@@ -68,7 +78,11 @@ function App() {
   useEffect(() => {
     let active = true;
     setHomeError(null);
-    fetchHomeData(auth.token)
+    
+    // ส่ง userId ถ้ามี
+    const userId = auth.profile?.id || auth.userId;
+    
+    fetchHomeData(auth.token, userId)
       .then((data) => {
         if (active) setHomeData(data);
       })
@@ -76,7 +90,7 @@ function App() {
         if (active) setHomeError(error.message ?? "ไม่สามารถโหลดข้อมูลได้");
       });
     return () => { active = false; };
-  }, [auth.token]);
+  }, [auth.token, auth.profile, auth.userId]);
 
   if (!homeData) {
     return (

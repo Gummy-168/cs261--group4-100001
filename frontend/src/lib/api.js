@@ -1,7 +1,9 @@
-// Pretend-backend: replace with your real endpoints.
+import { getAllEventCards, getEventCardsForUser } from '../services/eventService';
+import { toggleFavorite as toggleFavoriteService, getFavoritesByUser } from '../services/favoriteService';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
 
+// Mock data สำหรับ Hero และ Agenda (ยังไม่มี API)
 const mockHome = {
   hero: {
     images: [
@@ -14,58 +16,6 @@ const mockHome = {
     tagline: "งานเด่นช่วงสัปดาห์นี้",
     period: "งานเทศกาลวัฒนธรรม ตั้งแต่วันที่ 13 – 26 ตุลาคม",
   },
-  events: [
-    {
-      id: "camping",
-      title: "ค่ายกลางแจ้ง 4 วัน 3 คืน ณ เขาค้อ",
-      host: "ชมรมท่องเที่ยวธรรมศาสตร์",
-      date: "2025-10-14",
-      location: "อุทยานแห่งชาติเขาค้อ",
-      coverUrl: "/covers/camping.jpg",
-      liked: true,
-      category: "เรื่องเด่น",
-      type: "อาสา",
-      unit: "ชมรม",
-    },
-    {
-      id: "scholar",
-      title: "เวิร์กช็อปเตรียมสอบและทุนการศึกษาต่างประเทศ",
-      host: "ศูนย์แนะแนวและทุนการศึกษา",
-      date: "2025-10-19",
-      location: "ห้องประชุมคณะสังคมศาสตร์",
-      coverUrl: "/covers/scholar.jpg",
-      liked: false,
-      category: "กิจกรรมใหม่",
-      type: "วิชาการ",
-      unit: "คณะสังคมศาสตร์",
-    },
-    {
-      id: "python",
-      title: "อบรม Python เบื้องต้น สำหรับน้องปีหนึ่ง",
-      host: "ชมรมโปรแกรมเมอร์ธรรมศาสตร์",
-      date: "2025-10-24",
-      location: "Co-Working Space อาคารเรียนรวม SC",
-      coverUrl: "/covers/python.jpg",
-      liked: false,
-      category: "ใกล้ปิดรับสมัคร",
-      type: "พัฒนาตน",
-      unit: "คณะวิทยาศาสตร์",
-    },
-  ],
-  favoriteEvents: [
-    {
-      id: "camping",
-      title: "ค่ายกลางแจ้ง 4 วัน 3 คืน ณ เขาค้อ",
-      host: "ชมรมท่องเที่ยวธรรมศาสตร์",
-      date: "2025-10-14",
-      location: "อุทยานแห่งชาติเขาค้อ",
-      coverUrl: "/covers/camping.jpg",
-      liked: true,
-      category: "เรื่องเด่น",
-      type: "อาสา",
-      unit: "ชมรม",
-    },
-  ],
   agendaDays: [
     {
       date: "2025-10-14",
@@ -80,27 +30,6 @@ const mockHome = {
       items: [
         { title: "การแข่งขันกีฬาสีภายใน", id: "b1" },
         { title: "ชมรมดนตรีแจ๊สเปิดบ้าน", id: "b2" },
-      ],
-    },
-    {
-      date: "2025-10-16",
-      items: [
-        { title: "กิจกรรมบำเพ็ญประโยชน์ ณ วัดใกล้เคียง", id: "c1" },
-        { title: "บรรยายพิเศษอนาคตสายอาชีพดิจิทัล", id: "c2" },
-      ],
-    },
-    {
-      date: "2025-10-18",
-      highlight: true,
-      items: [
-        { title: "งานประกวดวงดนตรีมหาวิทยาลัย", id: "d1" },
-        { title: "ตลาดนัดศิษย์เก่าพบศิษย์ปัจจุบัน", id: "d2" },
-      ],
-    },
-    {
-      date: "2025-10-19",
-      items: [
-        { title: "ค่ายเตรียมความพร้อมภาษาอังกฤษ", id: "e1" },
       ],
     },
   ],
@@ -121,16 +50,36 @@ const mockHome = {
       detail: "เหลือเวลาอีก 2 วันสำหรับการสมัครเข้าร่วมอบรม Python สำหรับน้องปีหนึ่ง รีบลงชื่อกันนะ!",
       unread: true,
     },
-    {
-      id: "n3",
-      icon: "📢",
-      color: "#66a68c",
-      title: "อัปเดตระบบ: ปรับหน้าตาใหม่หน้าโฮม",
-      detail: "ทีมพัฒนาปรับดีไซน์หน้า Home ให้ใช้งานง่ายขึ้น หากมีคำแนะนำเพิ่มเติมสามารถส่งมาได้เลย",
-      unread: false,
-    },
   ],
 };
+
+/**
+ * แปลงข้อมูลจาก Backend เป็น format ที่ Frontend ต้องการ
+ */
+function transformEventToFrontend(event) {
+  return {
+    id: event.id,
+    title: event.title,
+    host: event.organizer || 'ไม่ระบุผู้จัด',
+    date: event.startTime,
+    location: event.location || 'ไม่ระบุสถานที่',
+    coverUrl: event.imageUrl ? `${API_BASE.replace('/api', '')}${event.imageUrl}` : null,
+    liked: event.isFavorited || false,
+    category: event.category || 'ทั้งหมด',
+    type: event.category || 'ทั้งหมด',
+    unit: event.organizer || 'ทั้งหมด',
+    // ข้อมูลเพิ่มเติม
+    description: event.description,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    maxCapacity: event.maxCapacity,
+    currentParticipants: event.currentParticipants,
+    status: event.status,
+    fee: event.fee,
+    isFull: event.isFull,
+    availableSeats: event.availableSeats,
+  };
+}
 
 function buildHeaders(token) {
   const headers = { "Content-Type": "application/json" };
@@ -138,47 +87,65 @@ function buildHeaders(token) {
   return headers;
 }
 
-export async function fetchHomeData(token) {
+/**
+ * ดึงข้อมูลหน้า Home (Events + Favorites + Hero + Agenda)
+ * @param {string} token - Auth token (optional)
+ * @param {number} userId - User ID สำหรับเช็ค favorites (optional)
+ */
+export async function fetchHomeData(token, userId = null) {
   try {
-    const response = await fetch(`${API_BASE}/home`, {
-      method: "GET",
-      headers: buildHeaders(token),
-      credentials: "include",
-    });
+    let events = [];
+    let favoriteEvents = [];
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch home data: ${response.status}`);
+    // ดึงข้อมูล Events
+    if (userId) {
+      // ถ้ามี userId ดึงพร้อม favorite status
+      const eventsData = await getEventCardsForUser(userId);
+      events = eventsData.map(transformEventToFrontend);
+      
+      // กรอง events ที่ favorite
+      favoriteEvents = events.filter(e => e.liked);
+    } else {
+      // ถ้าไม่มี userId ดึงแบบธรรมดา
+      const eventsData = await getAllEventCards();
+      events = eventsData.map(transformEventToFrontend);
     }
 
-    const data = await response.json();
     return {
-      hero: data.hero ?? mockHome.hero,
-      events: data.events ?? [],
-      favoriteEvents: data.favoriteEvents ?? [],
-      agendaDays: data.agendaDays ?? [],
-      notifications: data.notifications ?? [],
+      hero: mockHome.hero,
+      events: events,
+      favoriteEvents: favoriteEvents,
+      agendaDays: mockHome.agendaDays,
+      notifications: mockHome.notifications,
     };
   } catch (error) {
-    console.warn("[fetchHomeData] Falling back to mock data", error);
-    return mockHome;
+    console.error("[fetchHomeData] Error:", error);
+    // ถ้า error ให้ return mock data
+    return {
+      hero: mockHome.hero,
+      events: [],
+      favoriteEvents: [],
+      agendaDays: mockHome.agendaDays,
+      notifications: mockHome.notifications,
+    };
   }
 }
 
-export async function updateFavoriteEvent(eventId, liked, token) {
-  const endpoint = `${API_BASE}/favorites/${eventId}`;
-  const method = liked ? "POST" : "DELETE";
+/**
+ * Toggle Favorite Event
+ * @param {number} eventId - ID ของ event
+ * @param {boolean} liked - สถานะใหม่ (true = favorite, false = unfavorite)
+ * @param {string} token - Auth token
+ * @param {number} userId - User ID
+ */
+export async function updateFavoriteEvent(eventId, liked, token, userId) {
+  if (!userId) {
+    console.error("[updateFavoriteEvent] userId is required");
+    return { ok: false, error: "User ID is required" };
+  }
 
   try {
-    const response = await fetch(endpoint, {
-      method,
-      headers: buildHeaders(token),
-      credentials: "include",
-      body: liked ? JSON.stringify({ eventId }) : undefined,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to update favorite (${response.status})`);
-    }
+    await toggleFavoriteService(userId, eventId, !liked); // !liked เพราะ current state คือตรงข้าม
     return { ok: true };
   } catch (error) {
     console.error("[updateFavoriteEvent] error", error);
@@ -186,11 +153,22 @@ export async function updateFavoriteEvent(eventId, liked, token) {
   }
 }
 
+/**
+ * ดึงข้อมูล Events ทั้งหมด
+ */
 export async function fetchAllEvents() {
-  return []; // fill in
+  try {
+    const events = await getAllEventCards();
+    return events.map(transformEventToFrontend);
+  } catch (error) {
+    console.error("[fetchAllEvents] Error:", error);
+    return [];
+  }
 }
 
+/**
+ * Sign in mock (ยังไม่ได้ใช้ authService.js)
+ */
 export async function signInMock() {
-  // return tokens, profile, etc.
   return { ok: true, user: { name: "Demo User" } };
 }

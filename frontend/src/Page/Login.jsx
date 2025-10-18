@@ -31,10 +31,19 @@ export default function Login({ navigate: navigateProp, auth }) {
     setLoading(true);
     try {
       const data = await login(identifier, password);
+      
+      // ดึงข้อมูลจาก Backend Response
+      const userId = data?.userId;  // เพิ่ม userId
       const token = data?.token;
-      const profile = data?.user;
+      const profile = {
+        id: userId,  // เก็บ userId ไว้ใน profile
+        username: data?.username,
+        displaynameTh: data?.displayname_th || data?.displaynameTh,
+        email: data?.email,
+      };
 
-      auth?.login?.({ token, profile, remember });
+      // บันทึก auth state พร้อม userId
+      auth?.login?.({ token, profile, remember, userId });
 
       setClosing(true);
       setTimeout(() => navigate("/"), 600);

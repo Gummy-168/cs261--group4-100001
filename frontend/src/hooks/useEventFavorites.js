@@ -28,6 +28,15 @@ export default function useEventFavorites(data = {}, auth, requireLogin) {
       return;
     }
 
+    // ต้องมี userId
+    if (!auth?.userId && !auth?.profile?.id) {
+      console.error("User ID not found");
+      setError("ไม่พบข้อมูลผู้ใช้ กรุณา Login ใหม่อีกครั้ง");
+      return;
+    }
+
+    const userId = auth?.userId || auth?.profile?.id;
+
     setError(null);
 
     const prevEvents = events.map((event) => ({ ...event }));
@@ -48,7 +57,7 @@ export default function useEventFavorites(data = {}, auth, requireLogin) {
       return filtered;
     });
 
-    const result = await updateFavoriteEvent(id, state, auth?.token);
+    const result = await updateFavoriteEvent(id, state, auth?.token, userId);
     if (!result.ok) {
       setEvents(prevEvents);
       setFavorites(prevFavorites);
