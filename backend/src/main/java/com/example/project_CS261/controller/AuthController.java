@@ -37,13 +37,14 @@ public class AuthController {
                 // 2. ดึง IP Address
                 String ipAddress = getClientIP(httpRequest);
                 
-                // 3. บันทึก Login History เท่านั้น
-                userService.saveLoginHistory(tuResponse, ipAddress);
+                // 3. บันทึก Login History และได้ userId กลับมา
+                Long userId = userService.saveLoginHistoryAndGetUserId(tuResponse, ipAddress);
 
-                // 4. ส่ง Response กลับไป (ข้อมูลจาก TU API)
+                // 4. ส่ง Response กลับไป (ข้อมูลจาก TU API + userId)
                 LoginResponse success = new LoginResponse(
                     true, 
-                    "Login Success", 
+                    "Login Success",
+                    userId,  // เพิ่ม userId
                     tuResponse.getUsername(), 
                     tuResponse.getDisplaynameTh(), 
                     tuResponse.getEmail()
@@ -51,12 +52,12 @@ public class AuthController {
                 return ResponseEntity.ok(success);
             } else {
                 return ResponseEntity.status(401).body(
-                    new LoginResponse(false, "Invalid credentials", null, null, null)
+                    new LoginResponse(false, "Invalid credentials")
                 );
             }
         } catch (Exception e) {
             return ResponseEntity.status(500).body(
-                new LoginResponse(false, "Login failed: " + e.getMessage(), null, null, null)
+                new LoginResponse(false, "Login failed: " + e.getMessage())
             );
         }
     }
