@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FLAGS, LOGO_TEXT, THEME } from "../theme";
+import LogoMeetMeet from "../assets/img/Logo_MeetMeet.png";
 
 function useScrollShowDownHideUp() {
   const [hidden, setHidden] = useState(false);
@@ -33,7 +34,7 @@ export function HeaderSpacer() {
   return <div style={{ height: FLAGS.HEADER_HEIGHT_PX }} />;
 }
 
-export default function Header({ navigate, onCalendarJump, notifications = [], auth }) {
+export default function Header({ navigate, onCalendarJump, notifications = [], auth, onSearch, onActivities }) {
   const hidden = useScrollShowDownHideUp();
 
   const [openBell, setOpenBell] = useState(false);
@@ -55,13 +56,30 @@ export default function Header({ navigate, onCalendarJump, notifications = [], a
         backdropFilter: "saturate(1.1) blur(4px)",
       }}
     >
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+      <div className="mx-auto max-w-8/10 px-4 py-3 flex items-center justify-between">
         <a href="/" onClick={(e)=>{e.preventDefault(); navigate("/");}} className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-sm" style={{ background: THEME.brand.yellow }} />
-          <span className="text-2xl font-extrabold">{LOGO_TEXT}</span>
+          <img src={LogoMeetMeet} alt={LOGO_TEXT} className="h-9 w-auto" />
         </a>
 
         <nav className="flex items-center gap-6">
+          <button
+            className="p-1"
+            aria-label="ค้นหากิจกรรม"
+            onClick={() => (onSearch ? onSearch() : navigate("/search"))}
+          >
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="6" />
+              <path d="m20 20-3.6-3.6" />
+            </svg>
+          </button>
+
+          <button
+            className="rounded-full px-4 py-2 text-sm font-semibold text-gray-900 transition hover:bg-black/10"
+            onClick={() => (onActivities ? onActivities() : navigate("/activities"))}
+          >
+            กิจกรรมอื่นๆ
+          </button>
+
           <button className="p-1" aria-label="Calendar" onClick={onCalendarJump}>
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <rect x="3" y="4" width="18" height="18" rx="2" />

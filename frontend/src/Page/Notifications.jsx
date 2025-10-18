@@ -70,6 +70,7 @@ export default function NotificationsPage({ navigate, auth, notifications }) {
         navigate={navigate}
         onCalendarJump={() => navigate("/")}
         notifications={notifications}
+        onActivities={() => navigate("/activities")}
       />
       <HeaderSpacer />
 

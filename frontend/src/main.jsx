@@ -1,48 +1,136 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 
 import { usePath } from "./lib/router";
 import { fetchHomeData } from "./lib/api";
-import Home from "./Page/Home";               
-import Login from "./Page/Login";             
+import Home from "./Page/Home";
+import Login from "./Page/Login";
 import NotificationsPage from "./Page/Notifications";
+import ActivitiesPage from "./Page/Activities";
+import LoginPromptModal from "./components/LoginPromptModal";
 // import EventsAll from "./page/EventsAll";
 
-function useAuthStore(initial = false) {
-  const [loggedIn, setLoggedIn] = useState(initial);
+function useAuthStore() {
+  const [state, setState] = useState(() => {
+    const storedToken =
+      typeof window !== "undefined"
+        ? localStorage.getItem("authToken") ?? sessionStorage.getItem("authToken")
+        : null;
+    return {
+      loggedIn: Boolean(storedToken),
+      token: storedToken,
+      profile: null,
+    };
+  });
+
+  const login = useCallback(({ token, profile, remember = true } = {}) => {
+    setState((prev) => ({
+      ...prev,
+      loggedIn: true,
+      token: token ?? prev.token,
+      profile: profile ?? prev.profile,
+    }));
+    if (token) {
+      if (remember) {
+        localStorage.setItem("authToken", token);
+        sessionStorage.removeItem("authToken");
+      } else {
+        sessionStorage.setItem("authToken", token);
+        localStorage.removeItem("authToken");
+      }
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem("authToken");
+    sessionStorage.removeItem("authToken");
+    setState({ loggedIn: false, token: null, profile: null });
+  }, []);
+
   return useMemo(() => ({
-    loggedIn,
-    login: () => setLoggedIn(true),
-    logout: () => setLoggedIn(false),
-  }), [loggedIn]);
+    ...state,
+    login,
+    logout,
+  }), [state, login, logout]);
 }
 
 function App() {
   const { path, navigate } = usePath();
-  const auth = useAuthStore(false);
+  const auth = useAuthStore();
+
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
 
   // preload home data (you can split per-route if you want)
   const [homeData, setHomeData] = useState(null);
-  useEffect(() => { fetchHomeData().then(setHomeData); }, []);
+  const [homeError, setHomeError] = useState(null);
 
-  // minimal loading state
-  if (!homeData) return <div className="p-6 text-gray-600">Loading…</div>;
-  if (path.startsWith("/notifications")) {
+  useEffect(() => {
+    let active = true;
+    setHomeError(null);
+    fetchHomeData(auth.token)
+      .then((data) => {
+        if (active) setHomeData(data);
+      })
+      .catch((error) => {
+        if (active) setHomeError(error.message ?? "ไม่สามารถโหลดข้อมูลได้");
+      });
+    return () => { active = false; };
+  }, [auth.token]);
+
+  if (!homeData) {
     return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 text-gray-600">
+        Loading...
+      </div>
+    );
+  }
+
+  const requireLogin = () => setLoginPromptOpen(true);
+  const closePrompt = () => setLoginPromptOpen(false);
+  const goToLogin = () => {
+    setLoginPromptOpen(false);
+    navigate("/login");
+  };
+
+  let page = null;
+  if (path.startsWith("/notifications")) {
+    page = (
       <NotificationsPage
         navigate={navigate}
         auth={auth}
         notifications={homeData.notifications}
       />
     );
+  } else if (path.startsWith("/activities")) {
+    page = (
+      <ActivitiesPage
+        navigate={navigate}
+        auth={auth}
+        data={homeData}
+        requireLogin={requireLogin}
+      />
+    );
+  } else if (path.startsWith("/login")) {
+    page = <Login navigate={navigate} auth={auth} data={homeData} />;
+  } else {
+    page = <Home navigate={navigate} auth={auth} data={homeData} requireLogin={requireLogin} />;
   }
-
-  if (path.startsWith("/login"))        return <Login navigate={navigate} auth={auth} data={homeData} />;
-  // if (path.startsWith("/notifications")) return <Notifications navigate={navigate} auth={auth} data={homeData} />;
   // if (path.startsWith("/events-all"))   return <EventsAll navigate={navigate} auth={auth} data={homeData} />;
 
-  return <Home navigate={navigate} auth={auth} data={homeData} />;
+  return (
+    <>
+      {homeError ? (
+        <div className="bg-red-50 py-2 text-center text-sm text-red-600">
+          {homeError}
+        </div>
+      ) : null}
+      <div key={path} className="route-fade">
+        {page}
+      </div>
+      <LoginPromptModal open={loginPromptOpen} onClose={closePrompt} onConfirm={goToLogin} />
+    </>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
