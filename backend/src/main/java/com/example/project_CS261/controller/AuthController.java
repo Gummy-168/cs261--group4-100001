@@ -3,12 +3,16 @@ package com.example.project_CS261.controller;
 import com.example.project_CS261.dto.LoginRequest;
 import com.example.project_CS261.dto.LoginResponse;
 import com.example.project_CS261.dto.TuVerifyResponse;
+import com.example.project_CS261.model.User;
+import com.example.project_CS261.service.JwtService; // <-- เพิ่ม import
 import com.example.project_CS261.service.TuAuthService;
 import com.example.project_CS261.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -17,50 +21,60 @@ public class AuthController {
 
     private final TuAuthService tuAuthService;
     private final UserService userService;
+    private final JwtService jwtService; // <-- จุดที่ 1: ประกาศ jwtService
 
-    public AuthController(TuAuthService tuAuthService, UserService userService) {
+    // จุดที่ 2: แก้ไข Constructor ให้รับ jwtService
+    public AuthController(TuAuthService tuAuthService, UserService userService, JwtService jwtService) {
         this.tuAuthService = tuAuthService;
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
-    /**
-     * Login ผ่าน TU API และบันทึก Login History เท่านั้น
-     */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request,
-                                              HttpServletRequest httpRequest) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         try {
-            // 1. ตรวจสอบ username/password กับ TU API
             TuVerifyResponse tuResponse = tuAuthService.verify(request.getUsername(), request.getPassword());
 
             if (tuResponse != null && tuResponse.isStatus()) {
-                // 2. ดึง IP Address
+                // ส่วนนี้ของคุณถูกต้องอยู่แล้ว
                 String ipAddress = getClientIP(httpRequest);
-                
-                // 3. บันทึก Login History เท่านั้น
-                userService.saveLoginHistory(tuResponse, ipAddress);
+                User user = userService.findOrCreateUser(tuResponse);
+                userService.saveLoginHistory(user, ipAddress);
 
-                // 4. ส่ง Response กลับไป (ข้อมูลจาก TU API)
+                final String token = jwtService.generateToken(user.getUsername());
+
                 LoginResponse success = new LoginResponse(
-                    true, 
-                    "Login Success", 
-                    tuResponse.getUsername(), 
-                    tuResponse.getDisplaynameTh(), 
-                    tuResponse.getEmail()
+                        true,
+                        "Login Success",
+                        user.getUsername(),
+                        user.getDisplaynameTh(),
+                        user.getEmail(),
+                        token
                 );
                 return ResponseEntity.ok(success);
+
             } else {
-                return ResponseEntity.status(401).body(
-                    new LoginResponse(false, "Invalid credentials", null, null, null)
-                );
+                // ---- จุดที่ต้องแก้ไข 1 ----
+                // เพิ่ม null เข้าไปเป็นค่าที่ 6 สำหรับ token
+                return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid credentials", null, null, null, null));
             }
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(
-                new LoginResponse(false, "Login failed: " + e.getMessage(), null, null, null)
-            );
-        }
+            // ---- จุดที่ต้องแก้ไข 2 ----
+            // เพิ่ม null เข้าไปเป็นค่าที่ 6 สำหรับ token
+            return ResponseEntity.status(500).body(new LoginResponse(false, "Login Failed: " + e.getMessage(), null, null, null, null));        }
     }
-    
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        // ดึง username ของ user ที่ login อยู่ปัจจุบันจาก Token
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+
+        // เรียก service ให้ไปบันทึกเวลา logout
+        userService.logUserLogout(currentUsername);
+
+        return ResponseEntity.ok("Logged out successfully.");
+    }
+
     /**
      * ฟังก์ชันดึง IP Address ของ Client
      */

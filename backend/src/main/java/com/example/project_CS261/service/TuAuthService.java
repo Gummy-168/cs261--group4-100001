@@ -18,8 +18,8 @@ public class TuAuthService {
     private final WebClient client;
 
     public TuAuthService(
-            @Value("${tuapi.url}") String tuApiUrl,
-            @Value("${tuapi.key}") String tuApiKey
+            @Value("${TU_API_URL}") String tuApiUrl,
+            @Value("${TU_API_KEY}") String tuApiKey
     ) {
         this.client = WebClient.builder()
                 .baseUrl(tuApiUrl)

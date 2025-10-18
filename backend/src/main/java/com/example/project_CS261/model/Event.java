@@ -1,85 +1,34 @@
 package com.example.project_CS261.model;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.Nationalized;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
-@Table(name = "events")
-@Getter @Setter @Builder
-@NoArgsConstructor @AllArgsConstructor
+@Table(name = "Events", schema = "dbo")
 public class Event {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Nationalized
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 255)
     private String title;
 
-    @Nationalized
-    @Column(nullable = false, length = 2000)
+    @Column(length = 1000)
     private String description;
 
-    @Column(nullable = false)
-    private LocalDateTime startTime;
-
-    private LocalDateTime endTime;
-
-    @Nationalized
-    @Column(nullable = false, length = 300)
     private String location;
 
-    @Column(nullable = false)
-    private Integer capacity;
+    @Column(name = "startTime")
+    private LocalDateTime startTime;
 
-    @Column(nullable = false)
-    private Integer reserved;
-
-    @Nationalized
-    @Column(nullable = false, length = 100)
-    private String category;
-
-    @Nationalized
-    @Column(nullable = false, length = 150)
-    private String organizerUnit;
-
-    @Nationalized
-    @Column(nullable = false, length = 120)
-    private String organizerName;
-
-    @Nationalized
-    @Column(nullable = false, length = 120)
-    private String organizerContact;
-
-    @Column(nullable = false, length = 500)
-    private String posterUrl;
-
-    @Column(length = 500)
-    private String registerUrl;
-
-    @Column(nullable = false)
-    private boolean edited;
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
-
-    // <<< MERGED: Helper methods จาก U2
-    @Transient
-    public int getRemaining() {
-        int left = (capacity == null ? 0 : capacity) - (reserved == null ? 0 : reserved);
-        return Math.max(left, 0);
-    }
-
-    @Transient
-    public boolean isFull() {
-        return getRemaining() <= 0;
-    }
+    @Column(name = "endTime")
+    private LocalDateTime endTime;
 }

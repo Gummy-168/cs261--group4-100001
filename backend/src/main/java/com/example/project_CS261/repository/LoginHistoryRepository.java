@@ -3,6 +3,7 @@ package com.example.project_CS261.repository;
 import com.example.project_CS261.model.LoginHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
 import java.util.List;
 
@@ -17,4 +18,5 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Long
     
     // นับจำนวนครั้งที่ Login ของ User
     long countByUsername(String username);
+    Optional<LoginHistory> findFirstByUsernameAndLogoutTimeIsNullOrderByLoginTimeDesc(String username);
 }

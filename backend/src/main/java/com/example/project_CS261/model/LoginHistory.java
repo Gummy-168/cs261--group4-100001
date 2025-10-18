@@ -18,12 +18,17 @@ public class LoginHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(name = "user_id")
-    private Long userId; // ไม่บังคับ (NULL ได้)
+
+    // เราจะใช้ตัวนี้เป็นตัวแทนของ user_id เพียงตัวเดียว
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id") // บอกว่าให้เชื่อมกับคอลัมน์ user_id ในตารางนี้
+    private User user;
     
     @Column(nullable = false, length = 50)
     private String username;
+
+    @Column(name = "logout_time") // จับคู่กับคอลัมน์ logout_time
+    private LocalDateTime logoutTime; // ชนิดข้อมูลสำหรับเก็บวัน-เวลา
     
     @CreationTimestamp
     @Column(name = "login_time")

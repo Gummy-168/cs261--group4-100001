@@ -11,6 +11,7 @@ public class LoginResponse {
     private boolean status;
     private String message;
     private String username;
-    private String displaynameTh;
+    private String displayName;
     private String email;
+    private String token;
 }

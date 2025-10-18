@@ -4,67 +4,60 @@
 
 package com.example.project_CS261.controller;
 
-import com.example.project_CS261.dto.*;
+import com.example.project_CS261.model.Event;
 import com.example.project_CS261.service.EventService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+
 import java.util.List;
-import java.time.LocalDate;
-import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/events")
-@RequiredArgsConstructor
 public class EventController {
 
     private final EventService eventService;
 
-    @GetMapping
-    public ResponseEntity<List<EventCardResponse>> listAllEvents() {
-        return ResponseEntity.ok(eventService.listAll());
+    public EventController(EventService eventService) {
+        this.eventService = eventService;
     }
 
+    // GET /api/events - Get all events
+    @GetMapping
+    public ResponseEntity<List<Event>> getAllEvents() {
+        return ResponseEntity.ok(eventService.getAll());
+    }
+
+    // GET /api/events/{id} - Get one event by id
     @GetMapping("/{id}")
-    public ResponseEntity<EventDetailResponse> getEventById(@PathVariable Long id) {
+    public ResponseEntity<Event> getEventById(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(eventService.getOne(id));
+            Event event = eventService.getOne(id);
+            return ResponseEntity.ok(event);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<List<EventCardResponse>> searchEvents(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) String location,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-
-        List<EventCardResponse> foundEvents = eventService.search(keyword, category, location, startDate, endDate);
-        return ResponseEntity.ok(foundEvents);
-    }
-
+    // POST /api/events - Create new event
     @PostMapping
-    public ResponseEntity<EventDetailResponse> createEvent(@RequestBody EventCreateRequest req) {
-        EventDetailResponse created = eventService.create(req);
+    public ResponseEntity<Event> createEvent(@RequestBody Event event) {
+        Event created = eventService.create(event);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    // PUT /api/events/{id} - Update existing event
     @PutMapping("/{id}")
-    public ResponseEntity<EventDetailResponse> updateEvent(@PathVariable Long id, @RequestBody EventUpdateRequest req) {
+    public ResponseEntity<Event> updateEvent(@PathVariable Long id, @RequestBody Event event) {
         try {
-            EventDetailResponse updated = eventService.update(id, req);
+            Event updated = eventService.update(id, event);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
+    // DELETE /api/events/{id} - Delete event
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
         try {
