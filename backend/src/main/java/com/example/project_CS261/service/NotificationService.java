@@ -53,7 +53,7 @@ public class NotificationService {
             // 2.1 ดึงข้อมูล User เพื่อเอา Email
             User user = userRepository.findById(nq.getUserId()).orElse(null);
             // 2.2 ดึงข้อมูล Event เพื่อเอาชื่อกิจกรรม
-            Event event = eventRepository.findById(nq.getActivityId()).orElse(null);
+            Event event = eventRepository.findById(nq.getEventId()).orElse(null);
 
             if (user != null && event != null && user.getEmail() != null) {
                 String subject = "แจ้งเตือนกิจกรรมใกล้เริ่ม: " + event.getTitle();

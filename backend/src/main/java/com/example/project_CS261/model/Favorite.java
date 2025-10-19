@@ -5,7 +5,7 @@ import lombok.*;
 
 @Entity
 @Table(name = "favorites",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"userId", "activityId"}))
+       uniqueConstraints = @UniqueConstraint(columnNames = {"userId", "eventId"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,6 +15,9 @@ public class Favorite {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private Long userId;
-    private Long activityId;
+    
+    @Column(nullable = false)
+    private Long eventId;  // Changed from activityId to eventId
 }

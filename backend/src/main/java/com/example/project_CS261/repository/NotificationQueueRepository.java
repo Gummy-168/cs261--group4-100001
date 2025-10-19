@@ -10,8 +10,9 @@ public interface NotificationQueueRepository extends JpaRepository<NotificationQ
 
     // ค้นหารายการแจ้งเตือนทั้งหมดที่ถึงเวลาส่งแล้วและยังไม่ได้ส่ง
     List<NotificationQueue> findByStatusAndSendAtBefore(String status, java.time.LocalDateTime now);
-    // ใช้สำหรับลบรายการแจ้งเตือนเมื่อผู้ใช้ un-favorite
-    void deleteByUserIdAndActivityId(Long userId, Long activityId);
+    
+    // ใช้สำหรับลบรายการแจ้งเศือนเมื่อผู้ใช้ un-favorite
+    void deleteByUserIdAndEventId(Long userId, Long eventId);
 
-    List<NotificationQueue> findByActivityId(Long activityId);
+    List<NotificationQueue> findByEventId(Long eventId);
 }

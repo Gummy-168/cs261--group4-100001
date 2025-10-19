@@ -17,7 +17,7 @@ public class NotificationQueue {
     private Long userId;
 
     @Column(nullable = false)
-    private Long activityId;
+    private Long eventId;  // เปลี่ยนจาก activityId เป็น eventId
 
     @Column(nullable = false)
     private LocalDateTime sendAt; // เวลาที่ควรจะส่งการแจ้งเตือน

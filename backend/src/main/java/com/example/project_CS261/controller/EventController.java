@@ -1,12 +1,10 @@
-//ทำหน้าที่:รับ HTTP Request จาก client (เช่น Browser, Postman, Frontend React ฯลฯ)
-//เรียกใช้ Service (EventService) เพื่อประมวลผล / จัดการข้อมูล
-//ส่ง HTTP Response กลับไป (พร้อม status code 200, 201, 404, 204 ฯลฯ)
-
 package com.example.project_CS261.controller;
 
 import com.example.project_CS261.dto.EventCardDTO;
 import com.example.project_CS261.model.Event;
 import com.example.project_CS261.service.EventService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/events")
-@CrossOrigin(origins = "http://localhost:5173")
+@Tag(name = "Events", description = "Event Management API")
 public class EventController {
     
     private final EventService eventService;
@@ -25,47 +23,47 @@ public class EventController {
         this.eventService = eventService;
     }
 
-    // GET /api/events - Get all events
     @GetMapping
+    @Operation(summary = "Get all events", description = "Retrieve all events from the database")
     public ResponseEntity<List<Event>> getAllEvents() {
         return ResponseEntity.ok(eventService.getAll());
     }
 
-    // GET /api/events/cards - Get all events as cards for frontend
     @GetMapping("/cards")
+    @Operation(summary = "Get all event cards", description = "Retrieve all events in card format for frontend display")
     public ResponseEntity<List<EventCardDTO>> getAllEventCards() {
         return ResponseEntity.ok(eventService.getAllCards());
     }
 
-    // GET /api/events/cards/user/{userId} - Get all events as cards with favorite status
     @GetMapping("/cards/user/{userId}")
+    @Operation(summary = "Get event cards for user", description = "Retrieve all events with favorite status for a specific user")
     public ResponseEntity<List<EventCardDTO>> getAllEventCardsForUser(@PathVariable Long userId) {
         return ResponseEntity.ok(eventService.getAllCardsForUser(userId));
     }
 
-    // GET /api/events/{id} - Get one event by id
     @GetMapping("/{id}")
+    @Operation(summary = "Get event by ID", description = "Retrieve a specific event by its ID")
     public ResponseEntity<Event> getEventById(@PathVariable Long id) {
         Event event = eventService.getOne(id);
         return ResponseEntity.ok(event);
     }
 
-    // POST /api/events - Create new event
     @PostMapping
+    @Operation(summary = "Create new event", description = "Create a new event (requires authentication)")
     public ResponseEntity<Event> createEvent(@Valid @RequestBody Event event) {
         Event created = eventService.create(event);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // PUT /api/events/{id} - Update existing event
     @PutMapping("/{id}")
+    @Operation(summary = "Update event", description = "Update an existing event (requires authentication)")
     public ResponseEntity<Event> updateEvent(@PathVariable Long id, @Valid @RequestBody Event event) {
         Event updated = eventService.update(id, event);
         return ResponseEntity.ok(updated);
     }
 
-    // DELETE /api/events/{id} - Delete event
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete event", description = "Delete an event (requires authentication)")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
         eventService.delete(id);
         return ResponseEntity.noContent().build();

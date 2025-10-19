@@ -8,5 +8,5 @@ import lombok.*;
 @AllArgsConstructor
 public class FavoriteDTO {
     private Long userId;
-    private Long activityId;
+    private Long eventId;
 }

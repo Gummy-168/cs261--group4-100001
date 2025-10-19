@@ -6,54 +6,91 @@ import com.example.project_CS261.model.NotificationQueue;
 import com.example.project_CS261.repository.EventRepository;
 import com.example.project_CS261.repository.FavoriteRepository;
 import com.example.project_CS261.repository.NotificationQueueRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
-@Transactional
 @Service
+@Transactional
 public class FavoriteService {
+
+    private static final Logger logger = LoggerFactory.getLogger(FavoriteService.class);
 
     private final FavoriteRepository favoriteRepository;
     private final NotificationQueueRepository notificationQueueRepository;
     private final EventRepository eventRepository;
 
-    public FavoriteService(FavoriteRepository favoriteRepository, NotificationQueueRepository notificationQueueRepository, EventRepository eventRepository) {
+    public FavoriteService(FavoriteRepository favoriteRepository, 
+                          NotificationQueueRepository notificationQueueRepository, 
+                          EventRepository eventRepository) {
         this.favoriteRepository = favoriteRepository;
         this.notificationQueueRepository = notificationQueueRepository;
         this.eventRepository = eventRepository;
     }
-    public Favorite addFavorite(Long userId, Long activityId) {
-        if (favoriteRepository.findByUserIdAndActivityId(userId, activityId).isPresent()) {
-            throw new RuntimeException("Activity already favorited");
+
+    /**
+     * Add event to user's favorites
+     */
+    public Favorite addFavorite(Long userId, Long eventId) {
+        logger.info("Adding favorite: userId={}, eventId={}", userId, eventId);
+        
+        // Check if already favorited
+        if (favoriteRepository.existsByUserIdAndEventId(userId, eventId)) {
+            logger.warn("Event {} already favorited by user {}", eventId, userId);
+            throw new RuntimeException("Event already favorited");
         }
+
+        // Create favorite
         Favorite favorite = new Favorite();
         favorite.setUserId(userId);
-        favorite.setActivityId(activityId);
+        favorite.setEventId(eventId);
 
-        // 1. ดึงข้อมูล Event เพื่อเอาเวลา startTime
-        Event event = eventRepository.findById(activityId)
-                .orElseThrow(() -> new RuntimeException("Event not found"));
+        // Get event details for notification
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
 
-        // 2. สร้างรายการใหม่ใน Notification Queue
+        // Create notification queue entry
         NotificationQueue nq = new NotificationQueue();
         nq.setUserId(userId);
-        nq.setActivityId(activityId);
-        nq.setSendAt(event.getStartTime().minusDays(1)); // ตั้งเวลาส่งล่วงหน้า 1 วัน
+        nq.setEventId(eventId);  // ใช้ eventId แทน activityId
+        nq.setSendAt(event.getStartTime().minusDays(1)); // Send 1 day before event
         nq.setStatus("PENDING");
         notificationQueueRepository.save(nq);
 
+        logger.info("Favorite added successfully for user {} and event {}", userId, eventId);
         return favoriteRepository.save(favorite);
     }
 
+    /**
+     * Get all favorites for a user
+     */
     public List<Favorite> getFavoritesByUser(Long userId) {
+        logger.info("Fetching favorites for user: {}", userId);
         return favoriteRepository.findByUserId(userId);
     }
 
-    public void removeFavorite(Long userId, Long activityId) {
-        // เมื่อเลิกชอบ ให้ลบออกจากคิวแจ้งเตือนด้วย
-        notificationQueueRepository.deleteByUserIdAndActivityId(userId, activityId);
+    /**
+     * Remove event from user's favorites
+     */
+    public void removeFavorite(Long userId, Long eventId) {
+        logger.info("Removing favorite: userId={}, eventId={}", userId, eventId);
+        
+        // Remove from notification queue
+        notificationQueueRepository.deleteByUserIdAndEventId(userId, eventId);
+        
+        // Remove favorite
+        favoriteRepository.deleteByUserIdAndEventId(userId, eventId);
+        
+        logger.info("Favorite removed successfully for user {} and event {}", userId, eventId);
+    }
 
-        favoriteRepository.deleteByUserIdAndActivityId(userId, activityId);
+    /**
+     * Check if event is favorited by user
+     */
+    public boolean isFavorited(Long userId, Long eventId) {
+        return favoriteRepository.existsByUserIdAndEventId(userId, eventId);
     }
 }

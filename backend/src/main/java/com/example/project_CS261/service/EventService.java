@@ -56,7 +56,7 @@ public class EventService {
                     EventCardDTO dto = new EventCardDTO(event);
                     // เช็คว่า user favorite กิจกรรมนี้หรือยัง
                     boolean isFavorited = favorites.stream()
-                            .anyMatch(fav -> fav.getActivityId().equals(event.getId()));
+                            .anyMatch(fav -> fav.getEventId().equals(event.getId()));
                     dto.setIsFavorited(isFavorited);
                     return dto;
                 })
