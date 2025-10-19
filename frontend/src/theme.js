@@ -1,18 +1,25 @@
 // central theme + flags
 export const THEME = {
-  brand: { yellow: "#f1c232", yellowDark: "#e1b11f" },
-  paper: "#ffffff",
-  page: "#f7f7f7",
-  text: "#111111",
-  bellDot: "#ef4444",
+  brand: {
+    yellow: "var(--color-brand-yellow)",
+    yellowDark: "var(--color-brand-yellow-dark)",
+    soft: "var(--color-brand-yellow-soft)",
+  },
+  paper: "var(--color-surface)",
+  page: "var(--color-page)",
+  text: "var(--color-text)",
+  bellDot: "var(--color-bell-dot)",
   bannerStages: [
-    "rgba(0,0,0,0.35)",
-    "rgba(255,193,7,0.35)",
-    "rgba(25,118,210,0.35)",
-    "rgba(67,160,71,0.35)",
-    "rgba(233,30,99,0.35)",
+    "var(--color-banner-stage-1)",
+    "var(--color-banner-stage-2)",
+    "var(--color-banner-stage-3)",
+    "var(--color-banner-stage-4)",
+    "var(--color-banner-stage-5)",
   ],
-  agendaVariant: { white: "#ffffff", yellow: "#ffe082" },
+  agendaVariant: {
+    white: "var(--agenda-variant-white)",
+    yellow: "var(--agenda-variant-yellow)",
+  },
 };
 
 export const LOGO_TEXT = "MeetMeet";

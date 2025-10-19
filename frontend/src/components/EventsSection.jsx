@@ -6,6 +6,7 @@ export default function EventsSection({
   onToggle,
   onSeeAllLink,
   onRequireLogin,
+  onOpenEvent,
 }) {
   return (
     <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
@@ -36,6 +37,7 @@ export default function EventsSection({
             loggedIn={loggedIn}
             onToggle={onToggle}
             onRequireLogin={onRequireLogin}
+            onOpen={onOpenEvent}
           />
         ))}
       </div>

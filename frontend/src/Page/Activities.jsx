@@ -102,6 +102,16 @@ export default function ActivitiesPage({ navigate, auth, data, requireLogin }) {
     resetMenu();
   };
 
+  const openEventDetail = (event) => {
+    if (!event?.id) return;
+    const target = `/events/${encodeURIComponent(event.id)}`;
+    const url =
+      typeof window !== "undefined"
+        ? new URL(target, window.location.origin).toString()
+        : target;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div style={{ background: THEME.page, color: THEME.text, minHeight: "100vh" }}>
       <Header
@@ -215,6 +225,7 @@ export default function ActivitiesPage({ navigate, auth, data, requireLogin }) {
                   loggedIn={auth.loggedIn}
                   onToggle={onToggleLike}
                   onRequireLogin={requireLogin}
+                  onOpen={openEventDetail}
                 />
               ))
             )}

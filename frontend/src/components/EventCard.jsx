@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-export default function EventCard({ e, loggedIn, onToggle, onRequireLogin }) {
+export default function EventCard({ e, loggedIn, onToggle, onRequireLogin, onOpen }) {
   const href = `/events/${e.id}`;
   const liked = Boolean(loggedIn && e.liked);
 
@@ -27,6 +27,10 @@ export default function EventCard({ e, loggedIn, onToggle, onRequireLogin }) {
   };
 
   const onNavigate = () => {
+    if (onOpen) {
+      onOpen(e);
+      return;
+    }
     window.open(href, "_blank", "noopener,noreferrer");
   };
 

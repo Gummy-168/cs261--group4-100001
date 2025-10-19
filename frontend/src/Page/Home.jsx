@@ -1,9 +1,10 @@
-import { useRef } from "react";
+﻿import { useRef } from "react";
 import Header, { HeaderSpacer } from "../components/Header";
 import Hero from "../components/Hero";
 import EventsSection from "../components/EventsSection";
 import AgendaGrid from "../components/AgendaGrid";
 import EventCard from "../components/EventCard";
+import FreeZoneSection from "../components/FreeZone";
 import Footer from "../components/Footer";
 import { THEME } from "../theme";
 import useEventFavorites from "../hooks/useEventFavorites";
@@ -19,6 +20,16 @@ export default function Home({ navigate, auth, data, requireLogin }) {
     } else {
       navigate("/search");
     }
+  };
+
+  const openEventDetail = (event) => {
+    if (!event?.id) return;
+    const target = `/events/${encodeURIComponent(event.id)}`;
+    const url =
+      typeof window !== "undefined"
+        ? new URL(target, window.location.origin).toString()
+        : target;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -77,6 +88,7 @@ export default function Home({ navigate, auth, data, requireLogin }) {
                       loggedIn
                       onToggle={onToggleLike}
                       onRequireLogin={requireLogin}
+                      onOpen={openEventDetail}
                     />
                   ))}
               </div>
@@ -92,17 +104,12 @@ export default function Home({ navigate, auth, data, requireLogin }) {
             onToggle={onToggleLike}
             onSeeAllLink={() => navigate("/activities")}
             onRequireLogin={requireLogin}
+            onOpenEvent={openEventDetail}
           />
 
           <AgendaGrid forwardRef={refAgenda} days={data.agendaDays} />
 
-          <section className="rounded-[28px] border border-black/5 bg-white py-16 text-center shadow-sm">
-            <h2 className="text-3xl font-semibold tracking-tight text-gray-900">Free Zone</h2>
-            <p className="mt-4 text-base text-gray-600">
-              พื้นที่สำหรับโปรโมตกิจกรรม ข่าวสาร หรือคอนเทนต์อื่น ๆ ที่อยากเน้นเป็นพิเศษ
-              สามารถปรับแต่งเนื้อหาได้ตามที่ต้องการ
-            </p>
-          </section>
+          <FreeZoneSection />
         </div>
       </main>
 

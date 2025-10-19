@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { FLAGS, LOGO_TEXT, THEME } from "../theme";
 import LogoMeetMeet from "../assets/img/Logo_MeetMeet.png";
 
@@ -52,7 +52,7 @@ export default function Header({ navigate, onCalendarJump, notifications = [], a
       className="fixed top-0 left-0 right-0 z-40 transition-transform duration-300"
       style={{
         transform: hidden ? "translateY(-110%)" : "translateY(0)",
-        background: `${THEME.brand.yellow}cc`,
+        background: THEME.brand.soft,
         backdropFilter: "saturate(1.1) blur(4px)",
       }}
     >
@@ -144,7 +144,15 @@ export default function Header({ navigate, onCalendarJump, notifications = [], a
                     <div className="text-sm opacity-90">ส่วนตัว</div>
                   </div>
                   <div className="bg-white px-2 py-3">
-                    <button className="w-full text-left px-3 py-2 rounded-lg hover:bg-black/5">การตั้งค่า</button>
+                    <button
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-black/5"
+                      onClick={() => {
+                        setOpenProfile(false);
+                        navigate("/settings");
+                      }}
+                    >
+                      การตั้งค่า
+                    </button>
                     <button className="w-full text-left px-3 py-2 rounded-lg hover:bg-black/5"
                             onClick={auth.logout}>ออกจากระบบ</button>
                   </div>
@@ -163,3 +171,4 @@ export default function Header({ navigate, onCalendarJump, notifications = [], a
     </header>
   );
 }
+
