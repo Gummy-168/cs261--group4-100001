@@ -15,11 +15,9 @@ export default function Home({ navigate, auth, data, requireLogin }) {
   const { events, favorites, error, onToggleLike, favoriteIds } = useEventFavorites(data, auth, requireLogin);
 
   const goToSearch = (query = "") => {
-    if (query && typeof query === "string") {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
-    } else {
-      navigate("/search");
-    }
+    // Navigate ไปหน้า Activities แล้วค้นหาที่นั่น
+    navigate("/activities");
+    // หมายเหตุ: ใน Activities page จะต้องรับ query จาก URL parameter
   };
 
   const openEventDetail = (event) => {
@@ -43,6 +41,7 @@ export default function Home({ navigate, auth, data, requireLogin }) {
         notifications={data.notifications}
         onSearch={goToSearch}
         onActivities={() => navigate("/activities")}
+        onRequireLogin={requireLogin}
       />
       <HeaderSpacer />
 

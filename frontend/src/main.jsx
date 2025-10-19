@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 
@@ -11,10 +11,11 @@ import ActivitiesPage from "./Page/Activities";
 import LoginPromptModal from "./components/LoginPromptModal";
 import SettingsPage from "./Page/Settings";
 import EventDetailPage from "./Page/EventDetail";
-// import EventsAll from "./page/EventsAll";
+import ErrorBoundary from "./components/ErrorBoundary";
+import LoadingSpinner from "./components/LoadingSpinner";
 
 const DEFAULT_PREFERENCES = {
-  theme: "system",
+  theme: "light",
   notifications: {
     follow: true,
     near: true,
@@ -98,6 +99,8 @@ function useAuthStore() {
   }, []);
 
   const login = useCallback(({ token, profile, remember = true, userId } = {}) => {
+    console.log('🔐 Auth Store - Login called:', { hasToken: !!token, userId, remember });
+    
     setState((prev) => {
       const nextProfile = profile ?? prev.profile;
       if (nextProfile) {
@@ -115,17 +118,24 @@ function useAuthStore() {
         userId: userId ?? prev.userId,
       };
     });
+    
+    // Store token
     if (token) {
       if (remember) {
         localStorage.setItem("authToken", token);
         sessionStorage.removeItem("authToken");
+        console.log('✅ Token stored in localStorage');
       } else {
         sessionStorage.setItem("authToken", token);
         localStorage.removeItem("authToken");
+        console.log('✅ Token stored in sessionStorage');
       }
     }
+    
+    // Store userId
     if (userId) {
       localStorage.setItem("userId", userId.toString());
+      console.log('✅ UserId stored:', userId);
     }
   }, []);
 
@@ -156,6 +166,7 @@ function useAuthStore() {
   );
 
   const logout = useCallback(() => {
+    console.log('👋 Auth Store - Logout called');
     localStorage.removeItem("authToken");
     sessionStorage.removeItem("authToken");
     localStorage.removeItem("userId");
@@ -168,6 +179,7 @@ function useAuthStore() {
       userId: null,
       preferences: { ...DEFAULT_PREFERENCES },
     });
+    console.log('✅ Logout complete');
   }, [persistProfile, persistPreferences]);
 
   return useMemo(
@@ -189,7 +201,9 @@ function App() {
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [homeData, setHomeData] = useState(null);
   const [homeError, setHomeError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Set theme
   useEffect(() => {
     if (typeof document !== "undefined") {
       const isLogin = path.startsWith("/login");
@@ -198,28 +212,47 @@ function App() {
     }
   }, [auth.preferences?.theme, path]);
 
+  // Fetch home data
   useEffect(() => {
     let active = true;
     setHomeError(null);
+    setLoading(true);
 
     const userId = auth.profile?.id || auth.userId;
+    const token = auth.token;
 
-    fetchHomeData(auth.token, userId)
+    console.log('📦 Fetching home data:', { userId, hasToken: !!token });
+
+    fetchHomeData(token, userId)
       .then((data) => {
-        if (active) setHomeData(data);
+        if (active) {
+          setHomeData(data);
+          console.log('✅ Home data loaded:', {
+            events: data.events?.length || 0,
+            favorites: data.favoriteEvents?.length || 0
+          });
+        }
       })
       .catch((error) => {
-        if (active) setHomeError(error.message ?? "ไม่สามารถโหลดข้อมูลได้");
+        if (active) {
+          console.error('❌ Home data error:', error);
+          setHomeError(error.message ?? "ไม่สามารถโหลดข้อมูลได้");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
+
     return () => {
       active = false;
     };
-  }, [auth.token, auth.profile, auth.userId]);
+  }, [auth.token, auth.profile, auth.userId, path]);
 
-  if (!homeData) {
+  // Show loading
+  if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100 text-gray-600">
-        Loading...
+      <div className="flex min-h-screen items-center justify-center bg-gray-100">
+        <LoadingSpinner size="large" message="กำลังโหลดข้อมูล..." />
       </div>
     );
   }
@@ -231,13 +264,15 @@ function App() {
     navigate("/login");
   };
 
+  // Route handling
   let page = null;
   if (path.startsWith("/notifications")) {
     page = (
       <NotificationsPage
         navigate={navigate}
         auth={auth}
-        notifications={homeData.notifications}
+        notifications={homeData?.notifications || []}
+        requireLogin={requireLogin}
       />
     );
   } else if (path.startsWith("/activities")) {
@@ -269,15 +304,14 @@ function App() {
       <Home navigate={navigate} auth={auth} data={homeData} requireLogin={requireLogin} />
     );
   }
-  // if (path.startsWith("/events-all"))   return <EventsAll navigate={navigate} auth={auth} data={homeData} />;
 
   return (
     <>
-      {homeError ? (
-        <div className="bg-red-50 py-2 text-center text-sm text-red-600">
-          {homeError}
+      {homeError && (
+        <div className="bg-red-50 py-2 text-center text-sm text-red-600 border-b border-red-200">
+          ⚠️ {homeError}
         </div>
-      ) : null}
+      )}
       <div key={path} className="route-fade">
         {page}
       </div>
@@ -288,7 +322,8 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
-

@@ -1,43 +1,41 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+import axiosInstance from '../lib/axiosInstance';
 
 /**
  * เพิ่ม Event ลง Favorites
  * @param {number} userId - ID ของผู้ใช้
- * @param {number} activityId - ID ของกิจกรรม
+ * @param {number} eventId - ID ของกิจกรรม
  * @returns {Promise<Object>}
  */
-export const addFavorite = async (userId, activityId) => {
+export const addFavorite = async (userId, eventId) => {
   try {
-    const response = await axios.post(`${API_URL}/favorites`, {
+    const response = await axiosInstance.post('/favorites', {
       userId,
-      activityId
+      eventId: eventId
     });
     return response.data;
   } catch (error) {
     console.error('Error adding favorite:', error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถบันทึกกิจกรรมได้');
+    throw new Error(error.message || 'ไม่สามารถบันทึกกิจกรรมได้');
   }
 };
 
 /**
  * ลบ Event ออกจาก Favorites
  * @param {number} userId - ID ของผู้ใช้
- * @param {number} activityId - ID ของกิจกรรม
+ * @param {number} eventId - ID ของกิจกรรม
  * @returns {Promise<void>}
  */
-export const removeFavorite = async (userId, activityId) => {
+export const removeFavorite = async (userId, eventId) => {
   try {
-    await axios.delete(`${API_URL}/favorites`, {
+    await axiosInstance.delete('/favorites', {
       data: {
         userId,
-        activityId
+        eventId: eventId
       }
     });
   } catch (error) {
     console.error('Error removing favorite:', error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถลบกิจกรรมออกจากรายการโปรดได้');
+    throw new Error(error.message || 'ไม่สามารถลบกิจกรรมออกจากรายการโปรดได้');
   }
 };
 
@@ -48,27 +46,27 @@ export const removeFavorite = async (userId, activityId) => {
  */
 export const getFavoritesByUser = async (userId) => {
   try {
-    const response = await axios.get(`${API_URL}/favorites/${userId}`);
+    const response = await axiosInstance.get(`/favorites/${userId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching favorites:', error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดรายการโปรดได้');
+    throw new Error(error.message || 'ไม่สามารถโหลดรายการโปรดได้');
   }
 };
 
 /**
  * Toggle Favorite (เพิ่มหรือลบ)
  * @param {number} userId
- * @param {number} activityId
+ * @param {number} eventId
  * @param {boolean} isFavorited - สถานะปัจจุบัน
  * @returns {Promise<Object|void>}
  */
-export const toggleFavorite = async (userId, activityId, isFavorited) => {
+export const toggleFavorite = async (userId, eventId, isFavorited) => {
   if (isFavorited) {
     // ถ้า favorite อยู่แล้ว ให้ลบออก
-    return await removeFavorite(userId, activityId);
+    return await removeFavorite(userId, eventId);
   } else {
     // ถ้ายังไม่ favorite ให้เพิ่ม
-    return await addFavorite(userId, activityId);
+    return await addFavorite(userId, eventId);
   }
 };

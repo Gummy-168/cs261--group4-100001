@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+import axiosInstance from '../lib/axiosInstance';
 
 /**
  * ดึงข้อมูล Events ทั้งหมดในรูปแบบ Card
@@ -8,11 +6,11 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
  */
 export const getAllEventCards = async () => {
   try {
-    const response = await axios.get(`${API_URL}/events/cards`);
+    const response = await axiosInstance.get('/events/cards');
     return response.data;
   } catch (error) {
     console.error('Error fetching event cards:', error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
+    throw new Error(error.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
   }
 };
 
@@ -23,11 +21,11 @@ export const getAllEventCards = async () => {
  */
 export const getEventCardsForUser = async (userId) => {
   try {
-    const response = await axios.get(`${API_URL}/events/cards/user/${userId}`);
+    const response = await axiosInstance.get(`/events/cards/user/${userId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching event cards for user:', error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
+    throw new Error(error.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
   }
 };
 
@@ -37,11 +35,11 @@ export const getEventCardsForUser = async (userId) => {
  */
 export const getAllEvents = async () => {
   try {
-    const response = await axios.get(`${API_URL}/events`);
+    const response = await axiosInstance.get('/events');
     return response.data;
   } catch (error) {
     console.error('Error fetching events:', error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
+    throw new Error(error.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
   }
 };
 
@@ -52,11 +50,11 @@ export const getAllEvents = async () => {
  */
 export const getEventById = async (eventId) => {
   try {
-    const response = await axios.get(`${API_URL}/events/${eventId}`);
+    const response = await axiosInstance.get(`/events/${eventId}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching event ${eventId}:`, error);
-    throw new Error(error.response?.data?.message || 'ไม่พบกิจกรรมที่ต้องการ');
+    throw new Error(error.message || 'ไม่พบกิจกรรมที่ต้องการ');
   }
 };
 
@@ -67,11 +65,11 @@ export const getEventById = async (eventId) => {
  */
 export const createEvent = async (eventData) => {
   try {
-    const response = await axios.post(`${API_URL}/events`, eventData);
+    const response = await axiosInstance.post('/events', eventData);
     return response.data;
   } catch (error) {
     console.error('Error creating event:', error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถสร้างกิจกรรมได้');
+    throw new Error(error.message || 'ไม่สามารถสร้างกิจกรรมได้');
   }
 };
 
@@ -83,11 +81,11 @@ export const createEvent = async (eventData) => {
  */
 export const updateEvent = async (eventId, eventData) => {
   try {
-    const response = await axios.put(`${API_URL}/events/${eventId}`, eventData);
+    const response = await axiosInstance.put(`/events/${eventId}`, eventData);
     return response.data;
   } catch (error) {
     console.error(`Error updating event ${eventId}:`, error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถอัปเดตกิจกรรมได้');
+    throw new Error(error.message || 'ไม่สามารถอัปเดตกิจกรรมได้');
   }
 };
 
@@ -98,9 +96,9 @@ export const updateEvent = async (eventId, eventData) => {
  */
 export const deleteEvent = async (eventId) => {
   try {
-    await axios.delete(`${API_URL}/events/${eventId}`);
+    await axiosInstance.delete(`/events/${eventId}`);
   } catch (error) {
     console.error(`Error deleting event ${eventId}:`, error);
-    throw new Error(error.response?.data?.message || 'ไม่สามารถลบกิจกรรมได้');
+    throw new Error(error.message || 'ไม่สามารถลบกิจกรรมได้');
   }
 };

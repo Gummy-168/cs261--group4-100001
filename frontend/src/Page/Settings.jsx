@@ -21,6 +21,8 @@ const DEFAULT_PROFILE = {
   bio: "",
 };
 
+const EDITABLE_PROFILE_FIELDS = ["nickname", "phone"];
+
 const DEFAULT_NOTIFICATIONS = {
   follow: true,
   near: true,
@@ -64,6 +66,11 @@ const toProfileDraft = (profile) => ({
   ...DEFAULT_PROFILE,
   ...(profile ?? {}),
   fullName: profile?.fullName ?? profile?.name ?? "",
+  studentId: profile?.studentId ?? profile?.id ?? "",
+  phone: profile?.phone ?? profile?.mobile ?? profile?.tel ?? "",
+  nickname: profile?.nickname ?? profile?.displayName ?? "",
+  faculty: profile?.faculty ?? profile?.department ?? "",
+  email: profile?.email ?? profile?.emailAddress ?? "",
 });
 
 const profileInitials = (profile) => {
@@ -81,7 +88,7 @@ const profileInitials = (profile) => {
 };
 
 const isProfileDirty = (draft, original) => {
-  return Object.keys(DEFAULT_PROFILE).some(
+  return EDITABLE_PROFILE_FIELDS.some(
     (key) => (draft[key] ?? "") !== (original[key] ?? "")
   );
 };
@@ -91,6 +98,7 @@ export default function SettingsPage({ navigate, auth }) {
 
   const originalProfile = useMemo(() => toProfileDraft(auth?.profile), [auth?.profile]);
   const [profileDraft, setProfileDraft] = useState(originalProfile);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState(null);
 
   useEffect(() => {
@@ -124,6 +132,14 @@ export default function SettingsPage({ navigate, auth }) {
   const [themeChoice, setThemeChoice] = useState(
     auth?.preferences?.theme ?? "system"
   );
+
+  useEffect(() => {
+    if (active !== "profile") {
+      setEditingProfile(false);
+      setProfileStatus(null);
+      setProfileDraft(originalProfile);
+    }
+  }, [active, originalProfile]);
   useEffect(() => {
     setThemeChoice(auth?.preferences?.theme ?? "system");
   }, [auth?.preferences?.theme]);
@@ -135,17 +151,37 @@ export default function SettingsPage({ navigate, auth }) {
   }, [themeChoice]);
 
   const handleProfileChange = (field, value) => {
+    if (!EDITABLE_PROFILE_FIELDS.includes(field)) return;
     setProfileDraft((prev) => ({ ...prev, [field]: value }));
+  };
+  const startProfileEdit = () => {
+    setProfileDraft(originalProfile);
+    setProfileStatus(null);
+    setEditingProfile(true);
   };
 
   const resetProfile = () => {
     setProfileDraft(originalProfile);
     setProfileStatus(null);
+    setEditingProfile(false);
   };
 
   const saveProfile = () => {
-    auth?.updateProfile?.(profileDraft);
+    if (!isProfileDirty(profileDraft, originalProfile)) {
+      setEditingProfile(false);
+      return;
+    }
+    const payload = EDITABLE_PROFILE_FIELDS.reduce((acc, key) => {
+      const value = profileDraft[key];
+      acc[key] = typeof value === "string" ? value.trim() : value ?? "";
+      return acc;
+    }, {});
+    auth?.updateProfile?.((prev) => ({
+      ...prev,
+      ...payload,
+    }));
     setProfileStatus("บันทึกแล้ว");
+    setEditingProfile(false);
     setTimeout(() => setProfileStatus(null), 2500);
   };
 
@@ -177,8 +213,8 @@ export default function SettingsPage({ navigate, auth }) {
   };
 
   const profileDirty = useMemo(
-    () => isProfileDirty(profileDraft, originalProfile),
-    [profileDraft, originalProfile]
+    () => (editingProfile ? isProfileDirty(profileDraft, originalProfile) : false),
+    [editingProfile, profileDraft, originalProfile]
   );
 
   return (
@@ -236,10 +272,13 @@ export default function SettingsPage({ navigate, auth }) {
         <main className="flex-1 px-4 pb-12 pt-6 md:p-10 bg-gray-50 space-y-8">
           {active === "profile" && (
             <ProfileSection
+              profile={originalProfile}
               draft={profileDraft}
+              editing={editingProfile}
+              onEdit={startProfileEdit}
               onChange={handleProfileChange}
               onSave={saveProfile}
-              onReset={resetProfile}
+              onCancel={resetProfile}
               canSubmit={profileDirty}
               status={profileStatus}
             />
@@ -262,89 +301,113 @@ export default function SettingsPage({ navigate, auth }) {
   );
 }
 
-function ProfileSection({ draft, onChange, onSave, onReset, canSubmit, status }) {
-  const initials = profileInitials(draft);
+function ProfileSection({ profile, draft, editing, onEdit, onChange, onSave, onCancel, canSubmit, status }) {
+  const initials = profileInitials(profile);
+  const displayProfile = editing ? { ...profile, ...draft } : profile;
 
   return (
-    <section className="max-w-2xl bg-white rounded-2xl p-8 md:p-10 shadow-sm border border-black/10">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h1 className="text-2xl font-semibold">แก้ไขโปรไฟล์</h1>
-        {status && (
-          <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
-            {status}
-          </span>
+    <section className="max-w-3xl bg-white rounded-2xl p-8 md:p-10 shadow-sm border border-black/10">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex gap-4">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-3xl font-semibold text-gray-600">
+              {initials}
+            </div>
+            <button
+              type="button"
+              className="rounded-full border border-black/10 px-4 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled
+              title="ฟีเจอร์นี้จะมาเร็วๆ นี้"
+            >
+              เปลี่ยนภาพ
+            </button>
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold">
+              {editing ? "แก้ไขบัญชี" : "บัญชีของคุณ"}
+            </h1>
+            <p className="text-sm text-gray-500">
+              ข้อมูลโปรไฟล์ถูกเชื่อมจากระบบมหาวิทยาลัย หากต้องการแก้ไข โปรดใช้ปุ่มด้านขวา
+            </p>
+          </div>
+        </div>
+        {editing ? (
+          <div className="flex gap-3">
+            <button
+              type="button"
+              className="rounded-full border border-black/10 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+              onClick={onCancel}
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              className="rounded-full bg-[#e84c3d] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d63a2b] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={onSave}
+              disabled={!canSubmit}
+            >
+              บันทึก
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="rounded-full border border-black/10 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+            onClick={onEdit}
+          >
+            แก้ไขบัญชี
+          </button>
         )}
       </div>
-      <div className="border-b border-gray-200 mb-8"></div>
 
-      <div className="flex flex-col md:flex-row md:items-center md:gap-6 mb-8">
-        <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-3xl font-semibold text-gray-600">
-          {initials}
+      {status ? (
+        <div className="mt-6 rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+          {status}
         </div>
-        <p className="text-sm text-gray-500 mt-3 md:mt-0">
-          จะรองรับการอัปโหลดรูปโปรไฟล์ได้ในภายหลัง
-        </p>
+      ) : null}
+
+      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <ProfileDetailItem label="ชื่อ - นามสกุล" value={displayProfile.fullName} />
+        {displayProfile.studentId ? (
+          <ProfileDetailItem label="รหัสนักศึกษา" value={displayProfile.studentId} />
+        ) : null}
+        <ProfileDetailItem label="ชื่อเล่น" value={displayProfile.nickname} />
+        <ProfileDetailItem label="คณะ / หน่วยงาน" value={displayProfile.faculty} />
+        <ProfileDetailItem label="เบอร์โทรศัพท์" value={displayProfile.phone} />
+        <ProfileDetailItem label="อีเมล" value={displayProfile.email} />
+        {displayProfile.bio ? (
+          <ProfileDetailItem label="แนะนำตัว" value={displayProfile.bio} />
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        <Field
-          label="ชื่อ-นามสกุล"
-          value={draft.fullName}
-          onChange={(value) => onChange("fullName", value)}
-          placeholder="ชื่อจริงของคุณ"
-        />
-        <Field
-          label="ชื่อเล่น"
-          value={draft.nickname}
-          onChange={(value) => onChange("nickname", value)}
-          placeholder="ชื่อที่เพื่อนเรียก"
-        />
-        <Field
-          label="คณะ / หน่วยงาน"
-          value={draft.faculty}
-          onChange={(value) => onChange("faculty", value)}
-          placeholder="ตัวอย่าง: คณะวิศวกรรมศาสตร์"
-        />
-        <Field
-          label="เบอร์โทรศัพท์"
-          value={draft.phone}
-          onChange={(value) => onChange("phone", value)}
-          placeholder="0xx-xxx-xxxx"
-        />
-        <Field
-          label="อีเมล"
-          value={draft.email}
-          onChange={(value) => onChange("email", value)}
-          placeholder="you@example.com"
-        />
-        <Field
-          label="แนะนำตัว"
-          value={draft.bio}
-          onChange={(value) => onChange("bio", value)}
-          placeholder="เล่าเกี่ยวกับสิ่งที่คุณสนใจเพื่อให้เพื่อนๆ รู้จักคุณมากขึ้น"
-          multiline
-        />
-      </div>
-
-      <div className="mt-10 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          className="rounded-full border border-black/10 px-10 py-2.5 font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={onReset}
-          disabled={!canSubmit}
-        >
-          คืนค่าเดิม
-        </button>
-        <button
-          type="button"
-          className="rounded-full bg-[#e84c3d] px-10 py-2.5 font-semibold text-white transition hover:bg-[#d63a2b] disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={onSave}
-          disabled={!canSubmit}
-        >
-          บันทึกโปรไฟล์
-        </button>
-      </div>
+      {editing ? (
+        <div className="mt-10 space-y-6">
+          <Field
+            label="ชื่อเล่น"
+            value={draft.nickname}
+            onChange={(value) => onChange("nickname", value)}
+            placeholder="ชื่อที่เพื่อนเรียก"
+          />
+          <Field
+            label="เบอร์โทรศัพท์"
+            value={draft.phone}
+            onChange={(value) => onChange("phone", value)}
+            placeholder="0xx-xxx-xxxx"
+          />
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function ProfileDetailItem({ label, value }) {
+  const display = typeof value === "string" ? value.trim() : value;
+  const hasValue = display !== undefined && display !== null && !(typeof display === "string" && display === "");
+  return (
+    <div className="flex flex-col gap-1 rounded-2xl border border-black/5 bg-black/5 px-4 py-3">
+      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</span>
+      <span className="text-sm font-medium text-gray-800">{hasValue ? display : '-'}</span>
+    </div>
   );
 }
 
@@ -481,7 +544,7 @@ function ContactSection() {
   );
 }
 
-function Field({ label, value, onChange, placeholder, multiline = false }) {
+function Field({ label, value, onChange, placeholder, multiline = false, disabled = false }) {
   const InputComponent = multiline ? "textarea" : "input";
   return (
     <label className="block">
@@ -489,10 +552,12 @@ function Field({ label, value, onChange, placeholder, multiline = false }) {
       <InputComponent
         className={`w-full rounded-xl border border-gray-300 px-4 py-3 text-sm shadow-sm transition focus:border-[#e84c3d] focus:outline-none focus:ring-2 focus:ring-[#e84c3d]/40 ${
           multiline ? "min-h-[120px] resize-none" : ""
-        }`}
+        } ${disabled ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}`}
         value={value}
         placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        readOnly={disabled}
+        onChange={(event) => !disabled && onChange?.(event.target.value)}
       />
     </label>
   );

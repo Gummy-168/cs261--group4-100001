@@ -109,6 +109,7 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
         navigate={navigate}
         onCalendarJump={() => navigate("/")}
         onActivities={() => navigate("/activities")}
+        onRequireLogin={requireLogin}
       />
       <HeaderSpacer />
 

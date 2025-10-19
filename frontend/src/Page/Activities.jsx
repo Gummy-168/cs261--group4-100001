@@ -5,10 +5,10 @@ import Footer from "../components/Footer";
 import { THEME } from "../theme";
 import useEventFavorites from "../hooks/useEventFavorites";
 
-const CATEGORY_FILTERS = ["ทั้งหมด", "เรื่องเด่น", "กิจกรรมใหม่", "ใกล้ปิดรับสมัคร"];
-const TYPE_FILTERS = ["ทั้งหมด", "วิชาการ", "บันเทิง", "กีฬา", "อาสา", "พัฒนาตน"];
+const CATEGORY_FILTERS = ["เรียงลำดับ", "เรื่องเด่น", "กิจกรรมใหม่", "ใกล้ปิดรับสมัคร"];
+const TYPE_FILTERS = ["ประเภท", "วิชาการ", "บันเทิง", "กีฬา", "อาสา", "พัฒนาตน"];
 const UNIT_FILTERS = [
-  "ทั้งหมด",
+  "สังกัด",
   "คณะวิศวกรรมศาสตร์",
   "คณะศิลปศาสตร์",
   "คณะวิทยาศาสตร์",
@@ -64,12 +64,8 @@ export default function ActivitiesPage({ navigate, auth, data, requireLogin }) {
   const [openMenu, setOpenMenu] = useState(null);
 
   const goToSearch = (term = "") => {
-    const query = term || searchTerm;
-    if (query) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
-    } else {
-      navigate("/search");
-    }
+    // ไม่ต้อง navigate แค่เซ็ต searchTerm
+    setSearchTerm(term || searchTerm);
   };
 
   const filteredEvents = useMemo(() => {
@@ -113,7 +109,10 @@ export default function ActivitiesPage({ navigate, auth, data, requireLogin }) {
   };
 
   return (
-    <div style={{ background: THEME.page, color: THEME.text, minHeight: "100vh" }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: THEME.page, color: THEME.text }}
+    >
       <Header
         auth={auth}
         navigate={navigate}
@@ -121,10 +120,11 @@ export default function ActivitiesPage({ navigate, auth, data, requireLogin }) {
         notifications={data.notifications}
         onSearch={goToSearch}
         onActivities={() => navigate("/activities")}
+        onRequireLogin={requireLogin}
       />
       <HeaderSpacer />
 
-      <main className="pb-20">
+      <main className="flex-1 pb-20">
         <div className="mx-auto flex w-full max-w-8/10 flex-col gap-10 px-4 pt-10">
           <div className="rounded-[28px] border border-black/10 bg-white px-6 py-8 shadow-sm">
             <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
@@ -233,7 +233,7 @@ export default function ActivitiesPage({ navigate, auth, data, requireLogin }) {
         </div>
       </main>
 
-      <Footer />
+      <Footer className="mt-auto" />
     </div>
   );
 }

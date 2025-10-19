@@ -1,13 +1,14 @@
+﻿import axiosInstance, { API_BASE_URL } from './axiosInstance';
 import { getAllEventCards, getEventCardsForUser } from '../services/eventService';
-import { toggleFavorite as toggleFavoriteService, getFavoritesByUser } from '../services/favoriteService';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api";
+import { addFavorite, removeFavorite } from '../services/favoriteService';
+import article02 from "../assets/img/article-02.png";
 
 // Mock data สำหรับ Hero และ Agenda (ยังไม่มี API)
 const mockHome = {
   hero: {
+    // Silde Show data
     images: [
-      { id: "festival", src: "/hero/festival.jpg", href: "/events/festival-lights", alt: "บรรยากาศงานเทศกาลกลางคืน" },
+      { id: "festival", src: article02, href: "/events/some-event", alt: "WELCOME" },
       { id: "sports", src: "/hero/sports-day.jpg", href: "/events/sports-day", alt: "งานกีฬาเฟรชชี่" },
       { id: "concert", src: "/hero/concert.jpg", href: "/events/concert-night", alt: "คอนเสิร์ตกลางแจ้ง" },
     ],
@@ -63,7 +64,7 @@ function transformEventToFrontend(event) {
     host: event.organizer || 'ไม่ระบุผู้จัด',
     date: event.startTime,
     location: event.location || 'ไม่ระบุสถานที่',
-    coverUrl: event.imageUrl ? `${API_BASE.replace('/api', '')}${event.imageUrl}` : null,
+    coverUrl: event.imageUrl ? `${API_BASE_URL.replace('/api', '')}${event.imageUrl}` : null,
     liked: event.isFavorited || false,
     category: event.category || 'ทั้งหมด',
     type: event.category || 'ทั้งหมด',
@@ -81,15 +82,9 @@ function transformEventToFrontend(event) {
   };
 }
 
-function buildHeaders(token) {
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-}
-
 /**
  * ดึงข้อมูลหน้า Home (Events + Favorites + Hero + Agenda)
- * @param {string} token - Auth token (optional)
+ * @param {string} token - Auth token (optional) - ไม่จำเป็นแล้วเพราะ axiosInstance จัดการให้
  * @param {number} userId - User ID สำหรับเช็ค favorites (optional)
  */
 export async function fetchHomeData(token, userId = null) {
@@ -97,18 +92,24 @@ export async function fetchHomeData(token, userId = null) {
     let events = [];
     let favoriteEvents = [];
 
+    console.log('📦 Fetching home data...', { userId, hasToken: !!token });
+
     // ดึงข้อมูล Events
     if (userId) {
       // ถ้ามี userId ดึงพร้อม favorite status
+      console.log('👤 Fetching events for user:', userId);
       const eventsData = await getEventCardsForUser(userId);
       events = eventsData.map(transformEventToFrontend);
       
       // กรอง events ที่ favorite
       favoriteEvents = events.filter(e => e.liked);
+      console.log('✅ Events loaded:', events.length, 'Favorites:', favoriteEvents.length);
     } else {
-      // ถ้าไม่มี userId ดึงแบบธรรมดา
+      // ถ้าไม่มี userId ดึงแบบธรรมดา (Public)
+      console.log('🌐 Fetching public events');
       const eventsData = await getAllEventCards();
       events = eventsData.map(transformEventToFrontend);
+      console.log('✅ Public events loaded:', events.length);
     }
 
     return {
@@ -120,6 +121,7 @@ export async function fetchHomeData(token, userId = null) {
     };
   } catch (error) {
     console.error("[fetchHomeData] Error:", error);
+    
     // ถ้า error ให้ return mock data
     return {
       hero: mockHome.hero,
@@ -134,8 +136,8 @@ export async function fetchHomeData(token, userId = null) {
 /**
  * Toggle Favorite Event
  * @param {number} eventId - ID ของ event
- * @param {boolean} liked - สถานะใหม่ (true = favorite, false = unfavorite)
- * @param {string} token - Auth token
+ * @param {boolean} liked - สถานะใหม่ (true = เพิ่มเป็นรายการโปรด, false = ยกเลิกการบันทึก)
+ * @param {string} token - Auth token (ไม่จำเป็นแล้ว - axiosInstance จัดการให้)
  * @param {number} userId - User ID
  */
 export async function updateFavoriteEvent(eventId, liked, token, userId) {
@@ -145,11 +147,19 @@ export async function updateFavoriteEvent(eventId, liked, token, userId) {
   }
 
   try {
-    await toggleFavoriteService(userId, eventId, !liked); // !liked เพราะ current state คือตรงข้าม
+    console.log("?? Updating favorite:", { eventId, nextState: liked, userId });
+
+    if (liked) {
+      await addFavorite(userId, eventId);
+    } else {
+      await removeFavorite(userId, eventId);
+    }
+
+    console.log("? Favorite updated successfully");
     return { ok: true };
   } catch (error) {
-    console.error("[updateFavoriteEvent] error", error);
-    return { ok: false, error };
+    console.error("[updateFavoriteEvent] error:", error);
+    return { ok: false, error: error.message };
   }
 }
 
@@ -158,8 +168,11 @@ export async function updateFavoriteEvent(eventId, liked, token, userId) {
  */
 export async function fetchAllEvents() {
   try {
+    console.log('📋 Fetching all events...');
     const events = await getAllEventCards();
-    return events.map(transformEventToFrontend);
+    const transformed = events.map(transformEventToFrontend);
+    console.log('✅ All events loaded:', transformed.length);
+    return transformed;
   } catch (error) {
     console.error("[fetchAllEvents] Error:", error);
     return [];
@@ -167,8 +180,10 @@ export async function fetchAllEvents() {
 }
 
 /**
- * Sign in mock (ยังไม่ได้ใช้ authService.js)
+ * Sign in mock (deprecated - ใช้ authService.login แทน)
  */
 export async function signInMock() {
+  console.warn('⚠️ signInMock is deprecated. Use authService.login() instead.');
   return { ok: true, user: { name: "Demo User" } };
 }
+
