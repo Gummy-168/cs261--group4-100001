@@ -14,6 +14,11 @@ const UNIT_FILTERS = [
   "คณะวิทยาศาสตร์",
   "คณะสังคมศาสตร์",
   "ชมรม",
+  "Test",
+  "Test2",
+  "Test3",
+  "Test4",
+  "Test5",
 ];
 
 function FilterChip({ label, isActive, onClick, children }) {
@@ -37,7 +42,7 @@ function DropdownList({ open, items, onSelect }) {
   if (!open) return null;
   return (
     <div className="absolute left-1/2 top-full z-30 mt-2 w-48 -translate-x-1/2 rounded-2xl border border-black/10 bg-white shadow-lg">
-      <ul className="py-2 text-sm text-gray-700">
+      <ul className="max-h-60 overflow-y-auto py-2 text-sm text-gray-700">
         {items.map((item) => (
           <li key={item}>
             <button
@@ -157,52 +162,54 @@ export default function ActivitiesPage({ navigate, auth, data, requireLogin }) {
               </form>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
               <span className="text-sm font-medium text-gray-600">หมวดหมู่:</span>
-              <FilterChip
-                label={category}
-                isActive={category !== CATEGORY_FILTERS[0]}
-                onClick={() => setOpenMenu(openMenu === "category" ? null : "category")}
-              >
-                <DropdownList
-                  open={openMenu === "category"}
-                  items={CATEGORY_FILTERS}
-                  onSelect={onSelectCategory}
-                />
-              </FilterChip>
-
-              <FilterChip
-                label={type}
-                isActive={type !== TYPE_FILTERS[0]}
-                onClick={() => setOpenMenu(openMenu === "type" ? null : "type")}
-              >
-                <DropdownList open={openMenu === "type"} items={TYPE_FILTERS} onSelect={onSelectType} />
-              </FilterChip>
-
-              <FilterChip
-                label={unit}
-                isActive={unit !== UNIT_FILTERS[0]}
-                onClick={() => setOpenMenu(openMenu === "unit" ? null : "unit")}
-              >
-                <DropdownList open={openMenu === "unit"} items={UNIT_FILTERS} onSelect={onSelectUnit} />
-              </FilterChip>
-
-              {(category !== CATEGORY_FILTERS[0] ||
-                type !== TYPE_FILTERS[0] ||
-                unit !== UNIT_FILTERS[0]) && (
-                <button
-                  type="button"
-                  className="ml-2 text-sm text-gray-500 underline-offset-4 hover:underline"
-                  onClick={() => {
-                    setCategory(CATEGORY_FILTERS[0]);
-                    setType(TYPE_FILTERS[0]);
-                    setUnit(UNIT_FILTERS[0]);
-                    resetMenu();
-                  }}
+              <div className="flex gap-3 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible">
+                <FilterChip
+                  label={category}
+                  isActive={category !== CATEGORY_FILTERS[0]}
+                  onClick={() => setOpenMenu(openMenu === "category" ? null : "category")}
                 >
-                  ล้างตัวกรองทั้งหมด
-                </button>
-              )}
+                  <DropdownList
+                    open={openMenu === "category"}
+                    items={CATEGORY_FILTERS}
+                    onSelect={onSelectCategory}
+                  />
+                </FilterChip>
+
+                <FilterChip
+                  label={type}
+                  isActive={type !== TYPE_FILTERS[0]}
+                  onClick={() => setOpenMenu(openMenu === "type" ? null : "type")}
+                >
+                  <DropdownList open={openMenu === "type"} items={TYPE_FILTERS} onSelect={onSelectType} />
+                </FilterChip>
+
+                <FilterChip
+                  label={unit}
+                  isActive={unit !== UNIT_FILTERS[0]}
+                  onClick={() => setOpenMenu(openMenu === "unit" ? null : "unit")}
+                >
+                  <DropdownList open={openMenu === "unit"} items={UNIT_FILTERS} onSelect={onSelectUnit} />
+                </FilterChip>
+
+                {(category !== CATEGORY_FILTERS[0] ||
+                  type !== TYPE_FILTERS[0] ||
+                  unit !== UNIT_FILTERS[0]) && (
+                  <button
+                    type="button"
+                    className="ml-2 whitespace-nowrap text-sm text-gray-500 underline-offset-4 hover:underline"
+                    onClick={() => {
+                      setCategory(CATEGORY_FILTERS[0]);
+                      setType(TYPE_FILTERS[0]);
+                      setUnit(UNIT_FILTERS[0]);
+                      resetMenu();
+                    }}
+                  >
+                    ล้างตัวกรองทั้งหมด
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

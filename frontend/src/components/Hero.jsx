@@ -7,7 +7,6 @@ export default function Hero({
   headline = "ยินดีต้อนรับสู่แหล่งรวมกิจกรรมต่างๆของมหาวิทยาลัยธรรมศาสตร์",
   tagline = "งานกิจกรรมเด่นประจำสัปดาห์",
   period = "",
-  onSearch,
 }) {
   const slides = useMemo(() => {
     if (images?.length) return images;
@@ -16,13 +15,8 @@ export default function Hero({
 
   const [index, setIndex] = useState(0);
   const [introVisible, setIntroVisible] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
-
   const paused = useRef(false);
   const touchStartX = useRef(null);
-  const searchContainerRef = useRef(null);
-  const inputRef = useRef(null);
 
   useEffect(() => {
     setIndex(0);
@@ -43,33 +37,6 @@ export default function Hero({
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  useEffect(() => {
-    if (!searchOpen) return undefined;
-    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 160);
-    const handleKey = (event) => {
-      if (event.key === "Escape") {
-        setSearchOpen(false);
-        setSearchValue("");
-      }
-    };
-    const handleClick = (event) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
-        setSearchOpen(false);
-        setSearchValue("");
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    document.addEventListener("mousedown", handleClick);
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-      document.removeEventListener("mousedown", handleClick);
-      window.clearTimeout(focusTimer);
-    };
-  }, [searchOpen]);
-
-  useEffect(() => {
-    paused.current = searchOpen;
-  }, [searchOpen]);
 
   const goTo = (href) => {
     if (!href) return;
@@ -86,29 +53,11 @@ export default function Hero({
   const active = slides[index] ?? slides[0];
   const showIntro = index === 0;
 
-  const toggleSearch = () => {
-    setSearchOpen((prev) => {
-      if (prev) {
-        setSearchValue("");
-      }
-      return !prev;
-    });
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const query = searchValue.trim();
-    if (query) {
-      onSearch?.(query);
-      setSearchOpen(false);
-    }
-  };
-
   return (
     <section
       className="relative w-full overflow-hidden bg-black text-white shadow-lg"
       onMouseEnter={() => { paused.current = true; }}
-      onMouseLeave={() => { if (!searchOpen) paused.current = false; }}
+      onMouseLeave={() => { paused.current = false; }}
       onTouchStart={(event) => { touchStartX.current = event.touches[0].clientX; }}
       onTouchEnd={(event) => {
         if (touchStartX.current == null) return;
@@ -195,71 +144,6 @@ export default function Hero({
           </div>
         </>
       )}
-
-      <div className="pointer-events-none absolute right-3 top-3 md:right-6 md:top-6">
-        <div
-          ref={searchContainerRef}
-          className={`pointer-events-auto flex h-12 items-center rounded-2xl bg-white text-gray-800 shadow-lg hover:shadow-xl ${
-            searchOpen ? "pl-3 pr-3 gap-3" : "justify-center"
-          }`}
-          style={{
-            width: searchOpen ? "min(90vw, 520px)" : "3rem",
-            transition: "width 480ms cubic-bezier(0.22, 0.61, 0.36, 1), padding 480ms cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 240ms ease",
-          }}
-        >
-          <button
-            type="button"
-            onClick={toggleSearch}
-            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-300 ease-out hover:bg-black/5"
-            aria-label={searchOpen ? "ปิดช่องค้นหา" : "เปิดช่องค้นหา"}
-          >
-            <svg viewBox="0 0 24 24" className="h-6 w-6 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="6" />
-              <path d="m20 20-3.6-3.6" />
-            </svg>
-          </button>
-
-          {searchOpen && (
-            <>
-              <form onSubmit={handleSubmit} className="flex flex-1 items-center gap-2 pl-1">
-                <input
-                  ref={inputRef}
-                  type="search"
-                  value={searchValue}
-                  onChange={(event) => setSearchValue(event.target.value)}
-                  placeholder="ค้นหากิจกรรม..."
-                  className="flex-1 border-none bg-transparent text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                className="rounded-full bg-black px-3 py-1 text-sm font-semibold text-white transition-all duration-300 ease-out hover:bg-black/80"
-                >
-                  ค้นหา
-                </button>
-              </form>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchOpen(false);
-                  setSearchValue("");
-                }}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-gray-500 transition-all duration-300 ease-out hover:bg-black/10"
-                aria-label="ปิดช่องค้นหา"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
-        {searchOpen && (
-          <div className="pointer-events-none mt-2 text-right text-xs text-white/70 md:text-sm">
-            กด Enter เพื่อค้นหา หรือ Esc เพื่อปิด
-          </div>
-        )}
-      </div>
     </section>
   );
 }

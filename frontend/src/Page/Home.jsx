@@ -80,6 +80,7 @@ export default function Home({ navigate, auth, data, requireLogin }) {
                     const dateB = new Date(b.date ?? 0).getTime();
                     return dateA - dateB;
                   })
+                  .slice(0, 3)
                   .map((event) => (
                     <EventCard
                       key={`fav-${event.id}`}

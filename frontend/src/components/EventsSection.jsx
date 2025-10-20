@@ -7,7 +7,10 @@ export default function EventsSection({
   onSeeAllLink,
   onRequireLogin,
   onOpenEvent,
+  maxVisible = 6,
 }) {
+  const visibleEvents = list.slice(0, maxVisible);
+
   return (
     <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -30,7 +33,7 @@ export default function EventsSection({
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {list.map((event) => (
+        {visibleEvents.map((event) => (
           <EventCard
             key={event.id}
             e={event}
@@ -44,3 +47,5 @@ export default function EventsSection({
     </section>
   );
 }
+
+

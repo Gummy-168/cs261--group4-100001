@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { logout } from "../services/authService";
 import { FLAGS, LOGO_TEXT, THEME } from "../theme";
 import LogoMeetMeet from "../assets/img/Logo_MeetMeet.png";
@@ -240,7 +240,7 @@ export default function Header({
                   <button
                     onClick={() => {
                       setOpenProfile(false);
-                      navigate('/activities');
+                      navigate('/my-activities');
                     }}
                     className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
                   >
@@ -280,3 +280,4 @@ export default function Header({
     </header>
   );
 }
+

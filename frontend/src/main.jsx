@@ -8,6 +8,7 @@ import Home from "./Page/Home";
 import Login from "./Page/Login";
 import NotificationsPage from "./Page/Notifications";
 import ActivitiesPage from "./Page/Activities";
+import MyActivitiesPage from "./Page/MyActivities";
 import LoginPromptModal from "./components/LoginPromptModal";
 import SettingsPage from "./Page/Settings";
 import EventDetailPage from "./Page/EventDetail";
@@ -272,6 +273,15 @@ function App() {
         navigate={navigate}
         auth={auth}
         notifications={homeData?.notifications || []}
+        requireLogin={requireLogin}
+      />
+    );
+  } else if (path.startsWith("/my-activities")) {
+    page = (
+      <MyActivitiesPage
+        navigate={navigate}
+        auth={auth}
+        data={homeData}
         requireLogin={requireLogin}
       />
     );

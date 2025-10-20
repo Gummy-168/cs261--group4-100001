@@ -8,7 +8,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds
+  timeout: 30000, // เพิ่มเป็น 30 วินาที (แก้ปัญหา cold start)
 });
 
 // Request interceptor - Add JWT token to requests
@@ -33,7 +33,18 @@ axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Retry logic สำหรับ network errors (ยกเว้น login)
+    if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+      if (!originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
+        originalRequest._retry = true;
+        console.log('🔄 Retrying request...');
+        return axiosInstance(originalRequest);
+      }
+    }
+
     // Handle different error scenarios
     if (error.response) {
       // Server responded with error status
@@ -46,7 +57,10 @@ axiosInstance.interceptors.response.use(
           localStorage.removeItem('authToken');
           sessionStorage.removeItem('authToken');
           localStorage.removeItem('userId');
-          window.location.href = '/login';
+          // อย่า redirect ถ้าอยู่ที่หน้า login อยู่แล้ว
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
           break;
           
         case 403:
@@ -69,7 +83,7 @@ axiosInstance.interceptors.response.use(
     } else if (error.request) {
       // Request was made but no response
       console.error('Network error - no response from server');
-      return Promise.reject(new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์'));
+      return Promise.reject(new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองอีกครั้ง'));
     } else {
       // Something else happened
       console.error('Error:', error.message);
