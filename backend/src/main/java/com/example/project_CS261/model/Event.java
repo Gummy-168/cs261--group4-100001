@@ -24,13 +24,14 @@ public class Event {
 
     @NotBlank(message = "Title is required")
     @Size(max = 255, message = "Title must not exceed 255 characters")
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
     private String title;
 
     @Size(max = 1000, message = "Description must not exceed 1000 characters")
-    @Column(length = 1000)
+    @Column(columnDefinition = "NVARCHAR(1000)")
     private String description;
 
+    @Column(columnDefinition = "NVARCHAR(500)")
     private String location;
 
     @NotNull(message = "Start time is required")
@@ -42,11 +43,11 @@ public class Event {
     private LocalDateTime endTime;
 
     // รูปภาพกิจกรรม (เก็บเป็น URL หรือ path)
-    @Column(name = "imageUrl", length = 500)
+    @Column(name = "imageUrl", columnDefinition = "NVARCHAR(500)")
     private String imageUrl;
 
     // หมวดหมู่กิจกรรม (เช่น "กีฬา", "ศิลปะ", "วิชาการ", "กิจกรรมพิเศษ")
-    @Column(length = 100)
+    @Column(columnDefinition = "NVARCHAR(100)")
     private String category;
 
     // จำนวนผู้เข้าร่วมสูงสุด
@@ -59,11 +60,11 @@ public class Event {
     private Integer currentParticipants = 0;
 
     // สถานะกิจกรรม (OPEN, FULL, CLOSED, CANCELLED)
-    @Column(length = 20)
+    @Column(columnDefinition = "NVARCHAR(20)")
     private String status = "OPEN";
 
     // ชื่อผู้จัดกิจกรรม/หน่วยงาน
-    @Column(name = "organizer", length = 255)
+    @Column(name = "organizer", columnDefinition = "NVARCHAR(255)")
     private String organizer;
 
     // ค่าใช้จ่าย (0 = ฟรี)
@@ -71,6 +72,6 @@ public class Event {
     private Double fee = 0.0;
 
     // Tags สำหรับการค้นหา (เก็บเป็น JSON หรือ comma-separated)
-    @Column(length = 500)
+    @Column(columnDefinition = "NVARCHAR(500)")
     private String tags;
 }
