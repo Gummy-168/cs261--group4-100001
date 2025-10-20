@@ -35,7 +35,20 @@ public class FavoriteService {
      * Add event to user's favorites
      */
     public Favorite addFavorite(Long userId, Long eventId) {
-        logger.info("Adding favorite: userId={}, eventId={}", userId, eventId);
+        logger.info("=== Adding favorite ===");
+        logger.info("userId: {}", userId);
+        logger.info("eventId: {}", eventId);
+        
+        // Validate inputs
+        if (userId == null) {
+            logger.error("userId is NULL!");
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
+        
+        if (eventId == null) {
+            logger.error("eventId is NULL!");
+            throw new IllegalArgumentException("Event ID cannot be null");
+        }
         
         // Check if already favorited
         if (favoriteRepository.existsByUserIdAndEventId(userId, eventId)) {
@@ -52,16 +65,29 @@ public class FavoriteService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
 
+        logger.info("Event found: {}", event.getTitle());
+        logger.info("Event start time: {}", event.getStartTime());
+
         // Create notification queue entry
         NotificationQueue nq = new NotificationQueue();
         nq.setUserId(userId);
-        nq.setEventId(eventId);  // ใช้ eventId แทน activityId
-        nq.setSendAt(event.getStartTime().minusDays(1)); // Send 1 day before event
+        nq.setEventId(eventId);
+        nq.setSendAt(event.getStartTime().minusDays(1));
         nq.setStatus("PENDING");
+        
+        logger.info("NotificationQueue before save:");
+        logger.info("  userId: {}", nq.getUserId());
+        logger.info("  eventId: {}", nq.getEventId());
+        logger.info("  sendAt: {}", nq.getSendAt());
+        logger.info("  status: {}", nq.getStatus());
+        
         notificationQueueRepository.save(nq);
+        logger.info("NotificationQueue saved successfully");
 
+        Favorite savedFavorite = favoriteRepository.save(favorite);
         logger.info("Favorite added successfully for user {} and event {}", userId, eventId);
-        return favoriteRepository.save(favorite);
+        
+        return savedFavorite;
     }
 
     /**

@@ -1,5 +1,5 @@
 -- ============================================
--- สคริปต์สร้างตารางทั้งหมดสำหรับระบบ Login
+-- สคริปต์สร้างตารางทั้งหมดสำหรับระบบ (อัปเดต)
 -- ============================================
 -- ⚠️ รันไฟล์นี้ใน SQL Server Management Studio
 -- ⚠️ ระวัง: จะลบตารางเก่าและข้อมูลทั้งหมด
@@ -14,7 +14,11 @@ GO
 PRINT 'Creating table: users';
 GO
 
--- ลบตารางเก่าถ้ามี
+-- ลบตารางเก่าถ้ามี (ต้องลบตามลำดับเพราะมี Foreign Key)
+IF OBJECT_ID('dbo.notification_queue', 'U') IS NOT NULL
+    DROP TABLE dbo.notification_queue;
+GO
+
 IF OBJECT_ID('dbo.login_history', 'U') IS NOT NULL
     DROP TABLE dbo.login_history;
 GO
@@ -90,7 +94,57 @@ PRINT '✅ Table login_history created successfully!';
 GO
 
 -- ============================================
--- 3. แสดงข้อมูลตาราง
+-- 3. สร้างตาราง Notification Queue
+-- ============================================
+
+PRINT 'Creating table: notification_queue';
+GO
+
+-- สร้างตาราง notification_queue
+CREATE TABLE dbo.notification_queue (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    user_id BIGINT NOT NULL,                    -- รหัสผู้ใช้
+    event_id BIGINT NOT NULL,                   -- รหัสกิจกรรม
+    send_at DATETIME2 NOT NULL,                 -- เวลาที่ควรส่งการแจ้งเตือน
+    status NVARCHAR(20) NOT NULL DEFAULT 'PENDING', -- สถานะ: PENDING, SENT, FAILED
+    created_at DATETIME2 DEFAULT GETDATE(),     -- วันที่สร้างบันทึก
+    updated_at DATETIME2 DEFAULT GETDATE(),     -- วันที่อัพเดทล่าสุด
+    
+    -- Foreign Keys
+    CONSTRAINT FK_notification_queue_user FOREIGN KEY (user_id) 
+        REFERENCES dbo.users(id) ON DELETE CASCADE,
+    CONSTRAINT FK_notification_queue_event FOREIGN KEY (event_id) 
+        REFERENCES dbo.events(id) ON DELETE CASCADE
+);
+GO
+
+-- สร้าง Index เพื่อเพิ่มประสิทธิภาพการค้นหา
+CREATE INDEX idx_notification_queue_user_id ON dbo.notification_queue(user_id);
+CREATE INDEX idx_notification_queue_event_id ON dbo.notification_queue(event_id);
+CREATE INDEX idx_notification_queue_status ON dbo.notification_queue(status);
+CREATE INDEX idx_notification_queue_send_at ON dbo.notification_queue(send_at);
+CREATE INDEX idx_notification_queue_user_event ON dbo.notification_queue(user_id, event_id);
+GO
+
+-- สร้าง Trigger สำหรับอัพเดท updated_at อัตโนมัติ
+CREATE TRIGGER trg_notification_queue_updated_at
+ON dbo.notification_queue
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.notification_queue
+    SET updated_at = GETDATE()
+    FROM dbo.notification_queue nq
+    INNER JOIN inserted i ON nq.id = i.id;
+END;
+GO
+
+PRINT '✅ Table notification_queue created successfully!';
+GO
+
+-- ============================================
+-- 4. แสดงข้อมูลตาราง
 -- ============================================
 
 PRINT '';
@@ -100,14 +154,16 @@ PRINT '================================================';
 PRINT 'ตารางที่สร้าง:';
 PRINT '  1. dbo.users';
 PRINT '  2. dbo.login_history';
+PRINT '  3. dbo.notification_queue';
 PRINT '';
 PRINT 'ขั้นตอนถัดไป:';
 PRINT '  1. Restart Backend Spring Boot';
 PRINT '  2. ทดสอบ Login ที่ http://localhost:5173/login';
+PRINT '  3. ทดสอบการบันทึก/ยกเลิกกิจกรรมที่สนใจ';
 PRINT '================================================';
 GO
 
--- แสดงโครงสร้างตาราง
+-- แสดงโครงสร้างตาราง users
 SELECT 
     'users' AS table_name,
     COLUMN_NAME,
@@ -118,6 +174,7 @@ FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'users'
 ORDER BY ORDINAL_POSITION;
 
+-- แสดงโครงสร้างตาราง login_history
 SELECT 
     'login_history' AS table_name,
     COLUMN_NAME,
@@ -126,4 +183,15 @@ SELECT
     IS_NULLABLE
 FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'login_history'
+ORDER BY ORDINAL_POSITION;
+
+-- แสดงโครงสร้างตาราง notification_queue
+SELECT 
+    'notification_queue' AS table_name,
+    COLUMN_NAME,
+    DATA_TYPE,
+    CHARACTER_MAXIMUM_LENGTH,
+    IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'notification_queue'
 ORDER BY ORDINAL_POSITION;

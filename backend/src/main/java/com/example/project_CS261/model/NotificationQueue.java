@@ -13,15 +13,32 @@ public class NotificationQueue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
-    private Long eventId;  // เปลี่ยนจาก activityId เป็น eventId
+    @Column(name = "event_id", nullable = false)
+    private Long eventId;
 
-    @Column(nullable = false)
-    private LocalDateTime sendAt; // เวลาที่ควรจะส่งการแจ้งเตือน
+    @Column(name = "send_at", nullable = false)
+    private LocalDateTime sendAt;
 
     @Column(nullable = false, length = 20)
-    private String status = "PENDING"; // สถานะ: PENDING, SENT, FAILED
+    private String status = "PENDING";
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
