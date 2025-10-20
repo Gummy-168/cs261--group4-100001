@@ -12,23 +12,47 @@
 CREATE DATABASE EventDB;
 ```
 
-## 3. สร้างตารางทั้งหมด
+---
+
+## 3. เลือกวิธีติดตั้ง
+
+### ✅ **ถ้าเป็นการติดตั้งครั้งแรก** (แนะนำ)
 
 รันไฟล์นี้ใน SSMS:
-
 ```
-backend/src/main/resources/sql/setup_all_tables.sql
+src/main/resources/sql/setup_all_tables.sql
 ```
 
-**หมายเหตุ:** ไฟล์นี้จะสร้างตารางที่**รองรับภาษาไทย**โดยอัตโนมัติ
+### ⚠️ **ถ้ามีตาราง Events เก่าอยู่แล้ว**
+
+#### **ตรวจสอบก่อน:**
+```
+src/main/resources/sql/check_thai_support.sql
+```
+
+#### **ถ้าเจอ ❌ ไม่รองรับภาษาไทย:**
+
+**ทางเลือก A:** แก้ไขตารางเดิม (ไม่ลบข้อมูล)
+```
+src/main/resources/sql/fix_events_thai_support.sql
+```
+
+**ทางเลือก B:** ลบแล้วสร้างใหม่ (ข้อมูลจะหายทั้งหมด)
+```
+src/main/resources/sql/drop_events_table.sql
+src/main/resources/sql/setup_all_tables.sql
+```
+
+---
 
 ## 4. (Optional) ใส่ข้อมูลตัวอย่าง
 
 รันไฟล์:
+```
+src/main/resources/data/sample-events-thai.sql
+```
 
-```
-backend/src/main/resources/data/sample-events-thai.sql
-```
+---
 
 ## 5. ตั้งค่า Backend
 
@@ -48,8 +72,15 @@ mvn spring-boot:run
 
 ---
 
-## ✅ เสร็จแล้ว!
+## ✅ ทดสอบ
 
-ตอนนี้ระบบรองรับ**ภาษาไทย**แล้ว! 
+API: `http://localhost:8080`
 
-ทดสอบที่: `http://localhost:8080`
+ลองสร้าง Event ภาษาไทย:
+```json
+{
+  "title": "งานวันเด็ก",
+  "description": "กิจกรรมสนุกสนาน",
+  "location": "หอประชุมใหญ่"
+}
+```
