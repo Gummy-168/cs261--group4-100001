@@ -1,5 +1,5 @@
 // src/Page/Login.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { login } from "../services/authService";
 import Illustration from "../assets/video/login-illustration3.mp4";
 import Logo from "../assets/img/TULogo-02.png";
@@ -11,7 +11,37 @@ export default function Login({ navigate, auth }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [infoMessage, setInfoMessage] = useState("");
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("loggedOut")) {
+      setInfoMessage("");
+      setLogoutModalOpen(false);
+      return;
+    }
+
+    const message =
+      params.get("message") || "ออกจากระบบเรียบร้อยแล้ว";
+    setInfoMessage(message);
+    setLogoutModalOpen(true);
+
+    params.delete("loggedOut");
+    params.delete("message");
+    const nextSearch = params.toString();
+    const nextUrl = nextSearch
+      ? `${window.location.pathname}?${nextSearch}`
+      : window.location.pathname;
+    window.history.replaceState({}, "", nextUrl);
+  }, []);
+
+  const closeLogoutModal = () => {
+    setLogoutModalOpen(false);
+    setInfoMessage("");
+  };
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
@@ -65,7 +95,41 @@ export default function Login({ navigate, auth }) {
   };
 
   return (
-    <div className="flex h-screen w-full">
+    <>
+      {logoutModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+          role="alertdialog"
+          aria-live="assertive"
+          aria-modal="true"
+          onClick={closeLogoutModal}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 text-center"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">ออกจากระบบสำเร็จ</h2>
+            <p className="mt-2 text-sm text-gray-600">{infoMessage || "ออกจากระบบเรียบร้อยแล้ว"}</p>
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={closeLogoutModal}
+                className="inline-flex items-center rounded-full bg-red-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex h-screen w-full">
       {/* Left Side - Video Illustration */}
       <div
         className={[
@@ -195,6 +259,7 @@ export default function Login({ navigate, auth }) {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

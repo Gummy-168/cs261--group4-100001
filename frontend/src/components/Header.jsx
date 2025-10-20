@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { logout } from "../services/authService";
 import { FLAGS, LOGO_TEXT, THEME } from "../theme";
 import LogoMeetMeet from "../assets/img/Logo_MeetMeet.png";
@@ -65,7 +66,18 @@ export default function Header({
     logout(); // Clear tokens from storage
     auth?.logout?.(); // Update auth state
     setOpenProfile(false);
-    navigate('/login');
+    
+    // Show success toast
+    toast.success('ออกจากระบบสำเร็จแล้ว! 👋', {
+      duration: 3000,
+      style: {
+        background: '#10b981',
+        color: '#fff',
+        fontWeight: '600',
+      },
+    });
+    
+    navigate('/?loggedOut=1');
   };
 
   return (
