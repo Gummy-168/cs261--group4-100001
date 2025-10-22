@@ -1,21 +1,23 @@
 ﻿import axiosInstance, { API_BASE_URL } from './axiosInstance';
 import { getAllEventCards, getEventCardsForUser } from '../services/eventService';
 import { addFavorite, removeFavorite } from '../services/favoriteService';
-import article02 from "../assets/img/article-02.png";
+import Show from "../assets/img/Show.png";
+import Welcome from "../assets/img/Welcom.png";
+import Welcome2 from "../assets/img/Welcome2.png";
 
 // Mock data สำหรับ Hero และ Agenda (ยังไม่มี API)
 const mockHome = {
   hero: {
     // Silde Show data
     images: [
-      { id: "festival", src: article02, href: "/events/some-event", alt: "WELCOME" },
-      { id: "sports", src: "/hero/sports-day.jpg", href: "/events/sports-day", alt: "งานกีฬาเฟรชชี่" },
-      { id: "concert", src: "/hero/concert.jpg", href: "/events/concert-night", alt: "คอนเสิร์ตกลางแจ้ง" },
+      { id: "festival", src: Show, href: "/events/some-event", alt: "WELCOME" },
+      { id: "sports", src: Welcome2, href: "/events/sports-day", alt: "" },
+      { id: "concert", src: Welcome , href: "/events/concert-night", alt: "" },
     ],
     fallbackSrc: "/hero/fallback.jpg",
     headline: "ยินดีต้อนรับสู่แหล่งรวมกิจกรรมต่างๆของมหาวิทยาลัยธรรมศาสตร์",
-    tagline: "งานเด่นช่วงสัปดาห์นี้",
-    period: "งานเทศกาลวัฒนธรรม ตั้งแต่วันที่ 13 – 26 ตุลาคม",
+    tagline: "",
+    period: "ตุลาคม 2025",
   },
   agendaDays: [
     {
