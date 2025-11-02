@@ -1,0 +1,11 @@
+-- ตรวจสอบโครงสร้างตาราง favorites
+USE EventDB;
+GO
+
+SELECT 
+    COLUMN_NAME,
+    DATA_TYPE,
+    IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'favorites'
+ORDER BY ORDINAL_POSITION;
