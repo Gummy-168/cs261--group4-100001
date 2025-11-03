@@ -11,6 +11,7 @@ import com.example.project_CS261.repository.EventRepository;
 import com.example.project_CS261.repository.FavoriteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -105,7 +106,7 @@ public class EventService {
         logger.info("Event deleted successfully: {}", id);
     }
 
-    public List<Event> search(String keyword, String category, String location, String organizer, LocalDate startTime, LocalDate endTime) {
+    public List<Event> search(String keyword, String category, String location, String organizer, LocalDate startTime, LocalDate endTime, String sortBy) {
 
         Specification<Event> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -144,7 +145,21 @@ public class EventService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
+
+        // เรียงลำดับ
+        Sort sort = switch (sortBy) {
+            case "featured" -> // "เรื่องเด่น"  คือมีคนเข้าร่วมเยอะสุด
+                    Sort.by(Sort.Direction.DESC, "currentParticipants");
+            case "newest" -> // "กิจกรรมใหม่"  กิจกรรมที่กำลังจะเริ่มเร็วๆ นี้ (เอา DESC เพื่อให้วันที่ล่าสุดขึ้นก่อน)
+                    Sort.by(Sort.Direction.DESC, "startTime");
+            case "closingSoon" -> // "ใกล้ปิดรับสมัคร"  กิจกรรมที่กำลังจะจบ (endTime) เร็วที่สุด
+                    Sort.by(Sort.Direction.ASC, "endTime"); // "เรียงลำดับ" (ค่าเริ่มต้น)
+            default ->
+                // ค่าเริ่มต้น เราเรียงตามวันที่เริ่มกิจกรรม (ASC คือเก่าไปใหม่)
+                    Sort.by(Sort.Direction.ASC, "startTime");
+        };
+
         // ส่ง Specification ไปให้ Repository ค้นหา
-        return repo.findAll(spec);
+        return repo.findAll(spec, sort);
     }
 }

@@ -18,7 +18,7 @@ import java.util.List;
 @RequestMapping("/api/events")
 @Tag(name = "Events", description = "Event Management API")
 public class EventController {
-    
+
     private final EventService eventService;
 
     public EventController(EventService eventService) {
@@ -39,9 +39,10 @@ public class EventController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String organizer,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startTime,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endTime) {
-
-        List<Event> events = eventService.search(keyword, category, location, organizer, startTime, endTime);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endTime,
+            @RequestParam(required = false, defaultValue = "default") String sortBy)
+    {
+        List<Event> events = eventService.search(keyword, category, location, organizer, startTime, endTime, sortBy);
         return ResponseEntity.ok(events);
     }
 
