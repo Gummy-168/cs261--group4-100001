@@ -11,10 +11,15 @@ import com.example.project_CS261.repository.EventRepository;
 import com.example.project_CS261.repository.FavoriteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 
 @Service
 public class EventService {
@@ -98,5 +103,48 @@ public class EventService {
         }
         repo.deleteById(id);
         logger.info("Event deleted successfully: {}", id);
+    }
+
+    public List<Event> search(String keyword, String category, String location, String organizer, LocalDate startTime, LocalDate endTime) {
+
+        Specification<Event> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isEmpty()) {
+                Predicate titleLike = criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%" + keyword.toLowerCase() + "%");
+                Predicate descriptionLike = criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), "%" + keyword.toLowerCase() + "%");
+                predicates.add(criteriaBuilder.or(titleLike, descriptionLike));
+            }
+
+            if (category != null && !category.isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("category"), category));
+            }
+
+            if (location != null && !location.isEmpty()) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("location")), location.toLowerCase()));
+            }
+
+            if (organizer != null && !organizer.isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("organizer"), organizer));
+            }
+
+            if (startTime != null && endTime != null) {
+                // ค้นหากิจกรรมที่ *คาบเกี่ยว* กับช่วงเวลาที่เลือก
+                Predicate overlapStart = criteriaBuilder.lessThanOrEqualTo(root.get("startTime"), endTime.atTime(LocalTime.MAX));
+                Predicate overlapEnd = criteriaBuilder.greaterThanOrEqualTo(root.get("endTime"), startTime.atStartOfDay());
+                predicates.add(criteriaBuilder.and(overlapStart, overlapEnd));
+
+            } else if (startTime != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("endTime"), startTime.atStartOfDay()));
+
+            } else if (endTime != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startTime"), endTime.atTime(LocalTime.MAX)));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        // ส่ง Specification ไปให้ Repository ค้นหา
+        return repo.findAll(spec);
     }
 }

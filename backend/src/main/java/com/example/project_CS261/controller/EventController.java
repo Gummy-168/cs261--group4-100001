@@ -5,11 +5,13 @@ import com.example.project_CS261.model.Event;
 import com.example.project_CS261.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -27,6 +29,20 @@ public class EventController {
     @Operation(summary = "Get all events", description = "Retrieve all events from the database")
     public ResponseEntity<List<Event>> getAllEvents() {
         return ResponseEntity.ok(eventService.getAll());
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search events", description = "Search events by multiple criteria (public)")
+    public ResponseEntity<List<Event>> searchEvents(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String organizer,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startTime,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endTime) {
+
+        List<Event> events = eventService.search(keyword, category, location, organizer, startTime, endTime);
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/cards")
