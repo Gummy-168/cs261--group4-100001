@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/events")
-
+@CrossOrigin(origins = "http://localhost:5173")
 public class EventController {
 
     private final EventService eventService;
@@ -46,15 +46,15 @@ public class EventController {
 
     /**
      * POST /api/events - สร้าง Event ใหม่ (Admin เท่านั้น)
-     * Header: X-Username (ใส่ username ที่ login)
+     * Header: X-Admin-Email (ใส่ email ของ admin ที่ login)
      */
     @PostMapping
     public ResponseEntity<?> createEvent(
             @RequestBody Event event,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         // เช็คว่าเป็น Admin หรือไม่
-        if (username == null || !adminService.isAdmin(username)) {
+        if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only admins can create events"));
         }
@@ -65,16 +65,16 @@ public class EventController {
 
     /**
      * PUT /api/events/{id} - แก้ไข Event (Admin เท่านั้น)
-     * Header: X-Username (ใส่ username ที่ login)
+     * Header: X-Admin-Email (ใส่ email ของ admin ที่ login)
      */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEvent(
             @PathVariable Long id,
             @RequestBody Event event,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         // เช็คว่าเป็น Admin หรือไม่
-        if (username == null || !adminService.isAdmin(username)) {
+        if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only admins can update events"));
         }
@@ -89,15 +89,15 @@ public class EventController {
 
     /**
      * DELETE /api/events/{id} - ลบ Event (Admin เท่านั้น)
-     * Header: X-Username (ใส่ username ที่ login)
+     * Header: X-Admin-Email (ใส่ email ของ admin ที่ login)
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEvent(
             @PathVariable Long id,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         // เช็คว่าเป็น Admin หรือไม่
-        if (username == null || !adminService.isAdmin(username)) {
+        if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Only admins can delete events"));
         }

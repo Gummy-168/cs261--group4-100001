@@ -28,18 +28,18 @@ public class ParticipantController {
     public ResponseEntity<?> uploadParticipants(
             @PathVariable Long eventId,
             @RequestParam("file") MultipartFile file,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         try {
-            if (username == null || !adminService.isAdmin(username)) {
+            if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "เฉพาะ Admin เท่านั้นที่สามารถอัปโหลดรายชื่อได้"));
+                        .body(Map.of("error", "Only Admin can upload participant list"));
             }
 
-            List<EventParticipant> participants = participantService.uploadParticipants(eventId, file, username);
+            List<EventParticipant> participants = participantService.uploadParticipants(eventId, file, adminEmail);
 
             return ResponseEntity.ok(Map.of(
-                    "message", "อัปโหลดสำเร็จ",
+                    "message", "Upload successful",
                     "count", participants.size(),
                     "participants", participants
             ));
@@ -48,19 +48,19 @@ public class ParticipantController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "เกิดข้อผิดพลาด: " + e.getMessage()));
+                    .body(Map.of("error", "Error: " + e.getMessage()));
         }
     }
 
     @GetMapping
     public ResponseEntity<?> getAllParticipants(
             @PathVariable Long eventId,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         try {
-            if (username == null || !adminService.isAdmin(username)) {
+            if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "เฉพาะ Admin เท่านั้น"));
+                        .body(Map.of("error", "Only Admin can view participants"));
             }
 
             List<EventParticipant> participants = participantService.getAllParticipants(eventId);
@@ -80,15 +80,15 @@ public class ParticipantController {
     public ResponseEntity<?> addParticipant(
             @PathVariable Long eventId,
             @RequestBody ParticipantRequest request,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         try {
-            if (username == null || !adminService.isAdmin(username)) {
+            if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "เฉพาะ Admin เท่านั้น"));
+                        .body(Map.of("error", "Only Admin can add participants"));
             }
 
-            EventParticipant participant = participantService.addParticipant(eventId, request, username);
+            EventParticipant participant = participantService.addParticipant(eventId, request, adminEmail);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(participant);
 
@@ -102,12 +102,12 @@ public class ParticipantController {
             @PathVariable Long eventId,
             @PathVariable Long participantId,
             @RequestBody ParticipantRequest request,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         try {
-            if (username == null || !adminService.isAdmin(username)) {
+            if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "เฉพาะ Admin เท่านั้น"));
+                        .body(Map.of("error", "Only Admin can update participants"));
             }
 
             EventParticipant participant = participantService.updateParticipant(participantId, request);
@@ -123,17 +123,17 @@ public class ParticipantController {
     public ResponseEntity<?> deleteParticipant(
             @PathVariable Long eventId,
             @PathVariable Long participantId,
-            @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         try {
-            if (username == null || !adminService.isAdmin(username)) {
+            if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "เฉพาะ Admin เท่านั้น"));
+                        .body(Map.of("error", "Only Admin can delete participants"));
             }
 
             participantService.deleteParticipant(participantId);
 
-            return ResponseEntity.ok(Map.of("message", "ลบสำเร็จ"));
+            return ResponseEntity.ok(Map.of("message", "Deleted successfully"));
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

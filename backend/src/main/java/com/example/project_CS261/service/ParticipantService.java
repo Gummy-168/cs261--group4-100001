@@ -28,16 +28,16 @@ public class ParticipantService {
     @Transactional
     public List<EventParticipant> uploadParticipants(Long eventId, MultipartFile file, String approvedBy) {
         if (!eventRepository.existsById(eventId)) {
-            throw new IllegalArgumentException("ไม่พบกิจกรรม ID: " + eventId);
+            throw new IllegalArgumentException("Event not found: " + eventId);
         }
 
         if (file.isEmpty()) {
-            throw new IllegalArgumentException("ไฟล์ว่างเปล่า");
+            throw new IllegalArgumentException("File is empty");
         }
 
         String filename = file.getOriginalFilename();
         if (filename == null || (!filename.endsWith(".csv") && !filename.endsWith(".xlsx"))) {
-            throw new IllegalArgumentException("รองรับเฉพาะไฟล์ .csv หรือ .xlsx");
+            throw new IllegalArgumentException("Only .csv or .xlsx files supported");
         }
 
         List<EventParticipant> participants = new ArrayList<>();
@@ -45,10 +45,18 @@ public class ParticipantService {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             String line;
             boolean isFirstLine = true;
+            int lineNumber = 0;
 
             while ((line = reader.readLine()) != null) {
+                lineNumber++;
+
                 if (isFirstLine) {
                     isFirstLine = false;
+                    continue;
+                }
+
+                // Skip empty lines
+                if (line.trim().isEmpty()) {
                     continue;
                 }
 
@@ -59,6 +67,17 @@ public class ParticipantService {
                     String studentName = data[1].trim();
                     String email = data.length > 2 ? data[2].trim() : null;
 
+                    // Validate username is not empty
+                    if (username.isEmpty()) {
+                        throw new IllegalArgumentException("Empty username at line " + lineNumber);
+                    }
+
+                    // Validate student name is not empty
+                    if (studentName.isEmpty()) {
+                        throw new IllegalArgumentException("Empty student name at line " + lineNumber);
+                    }
+
+                    // Skip if already exists
                     if (participantRepository.existsByEventIdAndUsername(eventId, username)) {
                         continue;
                     }
@@ -74,10 +93,14 @@ public class ParticipantService {
                 }
             }
 
+            if (participants.isEmpty()) {
+                throw new IllegalArgumentException("No valid participants found in file");
+            }
+
             return participantRepository.saveAll(participants);
 
         } catch (Exception e) {
-            throw new RuntimeException("ไม่สามารถอ่านไฟล์ได้: " + e.getMessage());
+            throw new RuntimeException("Cannot read file: " + e.getMessage());
         }
     }
 
@@ -87,11 +110,11 @@ public class ParticipantService {
 
     public EventParticipant addParticipant(Long eventId, ParticipantRequest request, String approvedBy) {
         if (!eventRepository.existsById(eventId)) {
-            throw new IllegalArgumentException("ไม่พบกิจกรรม ID: " + eventId);
+            throw new IllegalArgumentException("Event not found: " + eventId);
         }
 
         if (participantRepository.existsByEventIdAndUsername(eventId, request.getUsername())) {
-            throw new IllegalArgumentException("รายชื่อซ้ำ: " + request.getUsername());
+            throw new IllegalArgumentException("Participant already exists");
         }
 
         EventParticipant participant = new EventParticipant();
@@ -106,7 +129,7 @@ public class ParticipantService {
 
     public EventParticipant updateParticipant(Long participantId, ParticipantRequest request) {
         EventParticipant participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("ไม่พบรายชื่อ ID: " + participantId));
+                .orElseThrow(() -> new IllegalArgumentException("Participant not found"));
 
         participant.setStudentName(request.getStudentName());
         participant.setEmail(request.getEmail());
@@ -116,12 +139,8 @@ public class ParticipantService {
 
     public void deleteParticipant(Long participantId) {
         if (!participantRepository.existsById(participantId)) {
-            throw new IllegalArgumentException("ไม่พบรายชื่อ ID: " + participantId);
+            throw new IllegalArgumentException("Participant not found");
         }
         participantRepository.deleteById(participantId);
-    }
-
-    public boolean isApproved(Long eventId, String username) {
-        return participantRepository.existsByEventIdAndUsername(eventId, username);
     }
 }

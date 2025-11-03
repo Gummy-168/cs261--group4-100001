@@ -121,6 +121,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Security (สำหรับ BCrypt password encryption) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- Spring Boot Starter Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
