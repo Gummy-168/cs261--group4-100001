@@ -17,7 +17,5 @@ public class EventParticipation {
 
     private Long eventId;
     private Long userId;
-
-    // status = "interested" or "going"
     private String status;
 }
