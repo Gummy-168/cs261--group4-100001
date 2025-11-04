@@ -8,5 +8,5 @@ import lombok.*;
 @AllArgsConstructor
 public class EventParticipationDTO {
     private Long userId;
-    private String status; // "interested" or "going"
+    private String status;
 }

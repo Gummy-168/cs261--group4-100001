@@ -1,5 +1,6 @@
 package com.example.project_CS261.controller;
 
+import com.example.project_CS261.dto.EventParticipationDTO;
 import com.example.project_CS261.model.EventParticipation;
 import com.example.project_CS261.service.EventParticipationService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,24 +16,23 @@ public class EventParticipationController {
     @Autowired
     private EventParticipationService service;
 
-    // GET popularity count
+    // ดูจำนวนคนสนใจ/ไปในกิจกรรม
     @GetMapping("/{id}/participants")
     public Map<String, Long> getPopularity(@PathVariable Long id) {
         return service.getEventPopularity(id);
     }
 
-    // POST participate
+    // เข้าร่วม/กดสนใจ
     @PostMapping("/{id}/participate")
     public EventParticipation participate(@PathVariable Long id,
-                                          @RequestParam Long userId,
-                                          @RequestParam String status) {
-        return service.participate(userId, id, status);
+                                          @RequestBody EventParticipationDTO dto) {
+        return service.participate(dto.getUserId(), id, dto.getStatus());
     }
 
-    // DELETE participation
+    // ยกเลิกการเข้าร่วม
     @DeleteMapping("/{id}/participate")
     public void remove(@PathVariable Long id,
-                       @RequestParam Long userId) {
-        service.removeParticipation(userId, id);
+                       @RequestBody EventParticipationDTO dto) {
+        service.removeParticipation(dto.getUserId(), id);
     }
 }
