@@ -4,16 +4,20 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "favorites")
+@Table(name = "event_participations")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Favorite {
+public class EventParticipation {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long eventId;
     private Long userId;
-    private Long activityId;
+
+    // status = "interested" or "going"
+    private String status;
 }
