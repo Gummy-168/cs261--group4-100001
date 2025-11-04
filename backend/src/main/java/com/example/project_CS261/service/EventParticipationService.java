@@ -4,9 +4,8 @@ import com.example.project_CS261.model.EventParticipation;
 import com.example.project_CS261.repository.EventParticipationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 
 @Service
 public class EventParticipationService {
@@ -18,11 +17,11 @@ public class EventParticipationService {
         List<EventParticipation> participations = repo.findByEventId(eventId);
 
         long interested = participations.stream()
-                .filter(p -> p.getStatus().equalsIgnoreCase("interested"))
+                .filter(p -> "interested".equalsIgnoreCase(p.getStatus()))
                 .count();
 
         long going = participations.stream()
-                .filter(p -> p.getStatus().equalsIgnoreCase("going"))
+                .filter(p -> "going".equalsIgnoreCase(p.getStatus()))
                 .count();
 
         Map<String, Long> result = new HashMap<>();
@@ -32,10 +31,10 @@ public class EventParticipationService {
     }
 
     public EventParticipation participate(Long userId, Long eventId, String status) {
-        EventParticipation p = repo.findByUserIdAndEventId(userId, eventId)
+        EventParticipation participation = repo.findByUserIdAndEventId(userId, eventId)
                 .orElse(new EventParticipation(null, eventId, userId, status));
-        p.setStatus(status);
-        return repo.save(p);
+        participation.setStatus(status);
+        return repo.save(participation);
     }
 
     public void removeParticipation(Long userId, Long eventId) {
