@@ -6,6 +6,11 @@ import com.example.project_CS261.model.User;
 import com.example.project_CS261.repository.EventRepository;
 import com.example.project_CS261.repository.NotificationQueueRepository;
 import com.example.project_CS261.repository.UserRepository;
+import com.example.project_CS261.repository.FavoriteRepository; // <-- 1. เพิ่ม Import
+import com.example.project_CS261.model.Favorite; // <-- 1. เพิ่ม Import
+import com.example.project_CS261.dto.NotificationDTO; // <-- 1. เพิ่ม Import
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,16 +30,70 @@ public class NotificationService {
     private final NotificationQueueRepository notificationQueueRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
+    private final FavoriteRepository favoriteRepository;
 
     @Value("${app.email.from}")
     private String fromEmail;
 
-    public NotificationService(JavaMailSender emailSender, NotificationQueueRepository notificationQueueRepository, UserRepository userRepository, EventRepository eventRepository) {
+    public NotificationService(JavaMailSender emailSender,
+                               NotificationQueueRepository notificationQueueRepository,
+                               UserRepository userRepository,
+                               EventRepository eventRepository,
+                               FavoriteRepository favoriteRepository) {
         this.emailSender = emailSender;
         this.notificationQueueRepository = notificationQueueRepository;
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
+        this.favoriteRepository = favoriteRepository;
     }
+
+    /**
+     * (เพิ่มใหม่)
+     * FR-8: ดึงข้อมูลแจ้งเตือนสำหรับ In-App Dropdown
+     */
+    public List<NotificationDTO> getInAppNotifications(Long userId) {
+        // 1. ดึง Notification ทั้งหมดของ User นี้จากตาราง favorites
+        // (เพราะ notification_queue จะมีแค่รายการที่ยังไม่ถึงกำหนดส่ง)
+        // (เราควรดึงจาก favorites ที่ผู้ใช้บันทึกไว้ทั้งหมด)
+        List<Favorite> favorites = favoriteRepository.findByUserId(userId);
+
+        // 2. แปลง List<Favorite> เป็น List<NotificationDTO>
+        return favorites.stream()
+                .map(fav -> {
+                    // ดึงข้อมูล Event
+                    Event event = eventRepository.findById(fav.getEventId()).orElse(null);
+                    if (event == null) {
+                        return null; // หรือจัดการกรณีกิจกรรมถูกลบ
+                    }
+
+                    // สร้าง DTO
+                    NotificationDTO dto = new NotificationDTO();
+                    dto.setEventId(event.getId());
+                    dto.setTitle(event.getTitle());
+                    dto.setStartTime(event.getStartTime());
+
+                    // *** สร้าง Logic การแจ้งเตือนตามรูป Screenshot 2025-11-03 214057.png ***
+                    // (เช่น "อีก 2 วัน", "กิจกรรมใหม่")
+                    dto.setMessage(generateInAppMessage(event));
+
+                    return dto;
+                })
+                .filter(dto -> dto != null && dto.getStartTime().isAfter(LocalDateTime.now())) // กรองอันที่หมดอายุแล้วทิ้ง
+                .collect(Collectors.toList());
+    }
+
+        // (เพิ่มใหม่)
+        // Helper method สร้างข้อความสั้นๆ
+        private String generateInAppMessage(Event event) {
+            long daysUntil = java.time.temporal.ChronoUnit.DAYS.between(LocalDateTime.now(), event.getStartTime());
+
+            if (daysUntil <= 2) {
+                return "เหลือเวลาอีก " + daysUntil + " วัน สำหรับกิจกรรมนี้"; // เหมือนในรูป
+            } else {
+                return "อย่าลืมลงทะเบียนก่อนวันที่ " + event.getStartTime().toLocalDate().toString(); // ข้อความตัวอย่าง
+                }
+            }
+
 
     /**
      * Method นี้จะทำงานอัตโนมัติทุกวันตอนตี 1
