@@ -101,7 +101,7 @@ public class NotificationService {
      * "59 59 23 * * ?" = 23:59:59 ทุกวัน
      */
     //@Scheduled(cron = "0 * * * * ?")
-    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "59 59 23 * * ?")
     public void sendScheduledNotifications() {
         logger.info("Executing scheduled notification job at 23:59:59...");
 
