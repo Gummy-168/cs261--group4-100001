@@ -33,12 +33,13 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/events/**").permitAll()
+                        .requestMatchers("/api/admin/**").permitAll()  // ⭐ ADD THIS
                         .requestMatchers("/api/images/**").permitAll()
-                        .requestMatchers("/images/**").permitAll()  // เพิ่มสำหรับ static resources
-                        
+                        .requestMatchers("/images/**").permitAll()
+
                         // Swagger UI
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**").permitAll()
-                        
+
                         // All other requests require authentication
                         .anyRequest().authenticated()
                 )
@@ -53,14 +54,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // Allow frontend origins
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://127.0.0.1:5173"
-        ));
-        
+
+        // ⭐ CHANGE THIS - use setAllowedOriginPatterns instead
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
@@ -69,7 +66,7 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
+
         return source;
     }
 }

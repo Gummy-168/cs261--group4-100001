@@ -8,18 +8,19 @@ import lombok.NoArgsConstructor;
 public class LoginResponse {
     private boolean status;
     private String message;
-    private String token;  // JWT Token
-    private Long userId;
+    private String token;  // JWT Token (keep this if you use it)
+    private Long userId;   // Keep this
     private String username;
     private String displaynameTh;
     private String email;
-    private String faculty;  // เพิ่ม faculty
-    private String department;  // เพิ่ม department
-    
-    // Constructor สำหรับกรณี Success (มีข้อมูลครบ)
-    public LoginResponse(boolean status, String message, String token, Long userId, 
-                        String username, String displaynameTh, String email, 
-                        String faculty, String department) {
+    private String faculty;
+    private String department;
+    private boolean isAdmin; // ✅ ADD THIS - to tell frontend if user is admin
+
+    // Constructor for Success (with all data)
+    public LoginResponse(boolean status, String message, String token, Long userId,
+                         String username, String displaynameTh, String email,
+                         String faculty, String department, boolean isAdmin) {
         this.status = status;
         this.message = message;
         this.token = token;
@@ -29,9 +30,10 @@ public class LoginResponse {
         this.email = email;
         this.faculty = faculty;
         this.department = department;
+        this.isAdmin = isAdmin;
     }
-    
-    // Constructor สำหรับกรณี Error (ไม่มี user data)
+
+    // Constructor for Error (no user data)
     public LoginResponse(boolean status, String message) {
         this.status = status;
         this.message = message;
@@ -40,5 +42,8 @@ public class LoginResponse {
         this.username = null;
         this.displaynameTh = null;
         this.email = null;
+        this.faculty = null;
+        this.department = null;
+        this.isAdmin = false;
     }
 }

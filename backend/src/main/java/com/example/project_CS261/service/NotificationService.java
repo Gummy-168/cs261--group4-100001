@@ -35,18 +35,19 @@ public class NotificationService {
     @Value("${app.email.from}")
     private String fromEmail;
 
+
     public NotificationService(JavaMailSender emailSender,
                                NotificationQueueRepository notificationQueueRepository,
                                UserRepository userRepository,
                                EventRepository eventRepository,
                                FavoriteRepository favoriteRepository) {
-        this.emailSender = emailSender;
-        this.notificationQueueRepository = notificationQueueRepository;
-        this.userRepository = userRepository;
-        this.eventRepository = eventRepository;
-        this.favoriteRepository = favoriteRepository;
-    }
+            this.emailSender = emailSender;
+            this.notificationQueueRepository = notificationQueueRepository;
+            this.userRepository = userRepository;
+            this.eventRepository = eventRepository;
+            this.favoriteRepository = favoriteRepository;
 
+    }
     /**
      * (เพิ่มใหม่)
      * FR-8: ดึงข้อมูลแจ้งเตือนสำหรับ In-App Dropdown
@@ -96,6 +97,11 @@ public class NotificationService {
 
 
     /**
+=======
+    }
+
+    /**
+>>>>>>> be/AdminEventControl
      * Method นี้จะทำงานอัตโนมัติทุกวันตอนตี 1
      * cron = "วินาที นาที ชั่วโมง วัน เดือน วันในสัปดาห์"
      * "59 59 23 * * ?" = 23:59:59 ทุกวัน

@@ -1,6 +1,9 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+<<<<<<< HEAD
 .idea
+=======
+>>>>>>> be/AdminEventControl
 # Editor-based HTTP Client requests
 /httpRequests/

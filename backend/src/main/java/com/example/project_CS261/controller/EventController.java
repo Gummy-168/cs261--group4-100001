@@ -11,8 +11,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
-import java.time.LocalDate;
+import com.example.project_CS261.service.AdminService;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
+import java.util.Map;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/events")
@@ -20,11 +24,15 @@ import java.util.List;
 public class EventController {
 
     private final EventService eventService;
+    private final AdminService adminService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, AdminService adminService) {
         this.eventService = eventService;
+        this.adminService = adminService;
     }
-
+    /**
+     * GET /api/events - ดูทั้งหมด (ทุกคนเห็นได้)
+     */
     @GetMapping
     @Operation(summary = "Get all events", description = "Retrieve all events from the database")
     public ResponseEntity<List<Event>> getAllEvents() {
@@ -58,31 +66,71 @@ public class EventController {
         return ResponseEntity.ok(eventService.getAllCardsForUser(userId));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id}") //
     @Operation(summary = "Get event by ID", description = "Retrieve a specific event by its ID")
     public ResponseEntity<Event> getEventById(@PathVariable Long id) {
-        Event event = eventService.getOne(id);
-        return ResponseEntity.ok(event);
+        try {
+            Event event = eventService.getOne(id);
+            return ResponseEntity.ok(event);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @PostMapping
     @Operation(summary = "Create new event", description = "Create a new event (requires authentication)")
-    public ResponseEntity<Event> createEvent(@Valid @RequestBody Event event) {
+    public ResponseEntity<?> createEvent(
+            @RequestBody Event event,
+            @RequestHeader(value = "X-Username", required = false) String username) {
+
+        // เช็คว่าเป็น Admin หรือไม่
+        if (username == null || !adminService.isAdmin(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only admins can create events"));
+        }
+
         Event created = eventService.create(event);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update event", description = "Update an existing event (requires authentication)")
-    public ResponseEntity<Event> updateEvent(@PathVariable Long id, @Valid @RequestBody Event event) {
-        Event updated = eventService.update(id, event);
-        return ResponseEntity.ok(updated);
+    public ResponseEntity<?> updateEvent(
+            @PathVariable Long id,
+            @RequestBody Event event,
+            @RequestHeader(value = "X-Username", required = false) String username) {
+
+        // เช็คว่าเป็น Admin หรือไม่
+        if (username == null || !adminService.isAdmin(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only admins can update events"));
+        }
+
+        try {
+            Event updated = eventService.update(id, event);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete event", description = "Delete an event (requires authentication)")
-    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
-        eventService.delete(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteEvent(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Username", required = false) String username) {
+
+        // เช็คว่าเป็น Admin หรือไม่
+        if (username == null || !adminService.isAdmin(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only admins can delete events"));
+        }
+
+        try {
+            eventService.delete(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
