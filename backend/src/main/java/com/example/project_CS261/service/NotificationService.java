@@ -41,11 +41,11 @@ public class NotificationService {
                                UserRepository userRepository,
                                EventRepository eventRepository,
                                FavoriteRepository favoriteRepository) {
-            this.emailSender = emailSender;
-            this.notificationQueueRepository = notificationQueueRepository;
-            this.userRepository = userRepository;
-            this.eventRepository = eventRepository;
-            this.favoriteRepository = favoriteRepository;
+        this.emailSender = emailSender;
+        this.notificationQueueRepository = notificationQueueRepository;
+        this.userRepository = userRepository;
+        this.eventRepository = eventRepository;
+        this.favoriteRepository = favoriteRepository;
 
     }
     /**
@@ -83,25 +83,25 @@ public class NotificationService {
                 .collect(Collectors.toList());
     }
 
-        // (เพิ่มใหม่)
-        // Helper method สร้างข้อความสั้นๆ
-        private String generateInAppMessage(Event event) {
-            long daysUntil = java.time.temporal.ChronoUnit.DAYS.between(LocalDateTime.now(), event.getStartTime());
+    // (เพิ่มใหม่)
+    // Helper method สร้างข้อความสั้นๆ
+    private String generateInAppMessage(Event event) {
+        long daysUntil = java.time.temporal.ChronoUnit.DAYS.between(LocalDateTime.now(), event.getStartTime());
 
-            if (daysUntil <= 2) {
-                return "เหลือเวลาอีก " + daysUntil + " วัน สำหรับกิจกรรมนี้"; // เหมือนในรูป
-            } else {
-                return "อย่าลืมลงทะเบียนก่อนวันที่ " + event.getStartTime().toLocalDate().toString(); // ข้อความตัวอย่าง
-                }
-            }
-
-
-    /**
-=======
+        if (daysUntil <= 2) {
+            return "เหลือเวลาอีก " + daysUntil + " วัน สำหรับกิจกรรมนี้"; // เหมือนในรูป
+        } else {
+            return "อย่าลืมลงทะเบียนก่อนวันที่ " + event.getStartTime().toLocalDate().toString(); // ข้อความตัวอย่าง
+        }
     }
 
+
     /**
->>>>>>> be/AdminEventControl
+     =======
+     }
+
+     /**
+     >>>>>>> be/AdminEventControl
      * Method นี้จะทำงานอัตโนมัติทุกวันตอนตี 1
      * cron = "วินาที นาที ชั่วโมง วัน เดือน วันในสัปดาห์"
      * "59 59 23 * * ?" = 23:59:59 ทุกวัน

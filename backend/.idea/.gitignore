@@ -2,8 +2,11 @@
 /shelf/
 /workspace.xml
 <<<<<<< HEAD
+<<<<<<< HEAD
 .idea
 =======
 >>>>>>> be/AdminEventControl
+=======
+>>>>>>> be/AdminFeedbackControl
 # Editor-based HTTP Client requests
 /httpRequests/

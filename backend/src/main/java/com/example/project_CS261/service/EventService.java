@@ -112,7 +112,6 @@ public class EventService {
         Event updated = repo.save(existed);
         logger.info("Event updated successfully: {}", id);
 
-        // --- เพิ่ม Logic FR-3 ---
         if (timeChanged || locationChanged) {
             logger.warn("Event {} has significant changes. Sending notifications...", id);
 

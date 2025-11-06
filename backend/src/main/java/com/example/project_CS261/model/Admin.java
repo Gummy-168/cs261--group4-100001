@@ -5,12 +5,17 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 /**
+<<<<<<< HEAD
  * Admin Entity - เก็บรายชื่อ username ที่เป็น Admin
  * Admin ต้อง login ผ่าน TU API เหมือนกัน แต่จะมีสิทธิ์พิเศษ
+=======
+ * Admin Entity - รองรับทั้ง username (TU API) และ email/password login
+>>>>>>> be/AdminFeedbackControl
  */
 @Data
 @NoArgsConstructor
@@ -29,16 +34,35 @@ public class Admin {
     @Column(length = 255,columnDefinition = "NVARCHAR(1000)")
     private String displayName; // ชื่อ Admin
 
+    // NEW FIELDS (สำหรับ email/password login)
+    @Column(length = 255)
+    private String email;
+
+    @Column(length = 255)
+    private String password;
+
     @Column(length = 100)
     private String role = "ADMIN"; // บทบาท (เผื่อมี SUPER_ADMIN ในอนาคต)
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "created_by", length = 50)
-    private String createdBy; // ใครเพิ่ม Admin คนนี้
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
-    @Column(name = "is_active")
-    private Boolean isActive = true; // สามารถปิดการใช้งาน Admin ได้
+    @Column(name = "created_by", length = 50)
+    private String createdBy;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
+
+    // Helper method
+    public void clearPassword() {
+        this.password = null;
+    }
 }
