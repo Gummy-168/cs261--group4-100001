@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import StarIcon from "./starIcon";
-import { useState } from "react";
-import { Star } from "lucide-react";
 
 export default function EventReviews({ eventId, auth, scenario = "can-review" }) {
   const [reviews, setReviews] = useState([]);
@@ -304,58 +302,5 @@ const DistributionBars = () => {
         </div>
       )}
     </section>
-  );
-}
-
-
-
-export default function EventComment({ onSubmit }) {
-  const [rating, setRating] = useState(0);
-  const [hover, setHover] = useState(0);
-  const [comment, setComment] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!rating || !comment.trim()) return;
-    onSubmit?.({ rating, comment });
-    setRating(0);
-    setComment("");
-  };
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex w-full items-center gap-3 bg-gray-50 rounded-full px-3 py-1.5"
-    >
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={16}
-            className={`cursor-pointer transition-colors ${
-              (hover || rating) >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
-            }`}
-            onMouseEnter={() => setHover(star)}
-            onMouseLeave={() => setHover(0)}
-            onClick={() => setRating(star)}
-          />
-        ))}
-      </div>
-
-      <input
-        type="text"
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        placeholder="แสดงความคิดเห็นของคุณได้ที่นี่"
-        className="flex-1 bg-transparent text-sm text-gray-700 outline-none"
-      />
-
-      <button
-        type="submit"
-        className="rounded-full bg-red-500 px-3 py-1 text-xs font-medium text-white hover:bg-red-600"
-      >
-        ส่ง
-      </button>
-    </form>
   );
 }

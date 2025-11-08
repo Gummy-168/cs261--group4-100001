@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import { THEME } from "../theme";
 import { updateFavoriteEvent } from "../lib/api";
 import EventReviews from "../components/EventReviews";
-import EventComment from "../components/EventComment";
+// import EventComment from "../components/EventComment";
 
 function combineEventSources(data, eventId) {
   if (!data) return null;
@@ -238,7 +238,7 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
                     {error}
                   </div>
                 ) : null}
-                <EventComment onSubmit={(data) => console.log(data)} />
+                {/* <EventComment onSubmit={(data) => console.log(data)} /> */}
                 {event && <EventReviews eventId={event.id} auth={auth} />}
               </div>
             </article>

@@ -5,7 +5,6 @@ import Show from "../assets/img/Show.png";
 import Welcome from "../assets/img/Welcom.png";
 import Welcome2 from "../assets/img/Welcome2.png";
 
-// Mock data สำหรับ Hero และ Agenda (ยังไม่มี API)
 const mockHome = {
   hero: {
     // Silde Show data
@@ -123,16 +122,15 @@ export async function fetchHomeData(token, userId = null) {
     };
   } catch (error) {
     console.error("[fetchHomeData] Error:", error);
-    
-    // ถ้า error ให้ return mock data
     return {
       hero: mockHome.hero,
-      events: [],
+      events: [],           
       favoriteEvents: [],
       agendaDays: mockHome.agendaDays,
       notifications: mockHome.notifications,
     };
-  }
+}
+
 }
 
 /**

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
-
+//gay
 import { usePath } from "./lib/router";
 import { fetchHomeData } from "./lib/api";
 import Home from "./Page/Home";
