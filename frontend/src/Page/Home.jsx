@@ -9,6 +9,16 @@ import Footer from "../components/Footer";
 import { THEME } from "../theme";
 import useEventFavorites from "../hooks/useEventFavorites";
 
+const mockEvent = {
+  id: "mock-1",
+  title: "กิจกรรมตัวอย่าง",
+  description: "ลองเขียนรีวิวและให้คะแนนในหน้านี้ได้เลย",
+  date: "2025-11-08",
+  image: "https://picsum.photos/400/200",
+  rating: 4.3,
+  reviewCount: 2,
+};
+
 export default function Home({ navigate, auth, data, requireLogin }) {
   const refAgenda = useRef(null);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
@@ -170,10 +180,7 @@ export default function Home({ navigate, auth, data, requireLogin }) {
             )}
 
             <EventsSection
-              list={events.map((event) => ({
-                ...event,
-                liked: favoriteIds.has(event.id) || event.liked,
-              }))}
+            list={data?.events || []}
               loggedIn={auth.loggedIn}
               onToggle={onToggleLike}
               onSeeAllLink={() => navigate("/activities")}

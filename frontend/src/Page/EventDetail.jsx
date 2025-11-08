@@ -3,6 +3,8 @@ import Header, { HeaderSpacer } from "../components/Header";
 import Footer from "../components/Footer";
 import { THEME } from "../theme";
 import { updateFavoriteEvent } from "../lib/api";
+import EventReviews from "../components/EventReviews";
+import EventComment from "../components/EventComment";
 
 function combineEventSources(data, eventId) {
   if (!data) return null;
@@ -127,7 +129,7 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
           </button>
 
           {event ? (
-            <article className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-sm">
+            <article className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-sm ">
               <div className="relative bg-black/5">
                 <div className="aspect-[4/2.5] w-full">
                   {event.coverUrl ? (
@@ -236,6 +238,8 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
                     {error}
                   </div>
                 ) : null}
+                <EventComment onSubmit={(data) => console.log(data)} />
+                {event && <EventReviews eventId={event.id} auth={auth} />}
               </div>
             </article>
           ) : (
@@ -244,6 +248,9 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
             </div>
           )}
         </div>
+
+
+
       </main>
 
       <Footer />
