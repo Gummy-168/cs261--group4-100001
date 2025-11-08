@@ -1,50 +1,70 @@
-import { THEME } from "../theme";
-import { useEffect, useState } from "react";
-
-function useAgendaCols() {
-  const get = () =>
-    window.matchMedia("(min-width:1024px)").matches ? 3 :
-    window.matchMedia("(min-width:768px)").matches  ? 2 : 1;
-  const [cols, setCols] = useState(get);
-  useEffect(() => {
-    const on = () => setCols(get());
-    addEventListener("resize", on);
-    return () => removeEventListener("resize", on);
-  }, []);
-  return cols;
-}
-
-function AgendaCard({ day, index, cols }) {
+function AgendaCard({ day }) {
   const firstId = day.items?.[0]?.id;
-  const onOpen = () => { if (firstId) window.open(`/events/${firstId}`, "_blank"); };
-  const row = Math.floor(index / cols);
-  const col = index % cols;
-  const isYellow = (row + col) % 2 === 0;
-  const bg = isYellow ? THEME.agendaVariant.yellow : THEME.agendaVariant.white;
+  const clickable = Boolean(firstId);
+  const onOpen = () => {
+    if (clickable) window.open(`/events/${firstId}`, "_blank", "noopener,noreferrer");
+  };
 
+  const formatted = (() => {
+    if (!day.date) return "";
+    try {
+      return new Date(day.date).toLocaleDateString("th-TH", {
+        weekday: "short",
+        day: "numeric",
+        month: "long",
+      });
+    } catch (_) {
+      return "";
+    }
+  })();
+
+  const highlight = Boolean(day.highlight);
+
+  const hoverClass = clickable ? "hover:-translate-y-[2px] hover:shadow-lg" : "";
   return (
     <div
-      className="rounded-2xl border border-black/10 p-4 cursor-pointer hover:shadow-sm transition"
-      style={{ background: bg, minHeight: 132 }}
+      className={`flex h-full flex-col rounded-[24px] border px-5 py-6 shadow-sm transition ${hoverClass} ${
+        highlight
+          ? "border-[#f0b429] bg-[#ffe082]"
+          : "border-black/10 bg-white"
+      }`}
+      style={clickable ? { cursor: "pointer" } : undefined}
       onClick={onOpen}
     >
-      <div className="mb-2 text-sm text-gray-600">
-        {new Date(day.date).toLocaleDateString(undefined, { day: "numeric", month: "long" })}
+      <div className="text-xs font-semibold uppercase tracking-[0.4em] text-gray-400">
+        DAY
       </div>
-      <ul className="space-y-2">
-        {(day.items ?? []).map(it => (<li key={it.id} className="text-sm">• {it.title}</li>))}
+      <h3 className="mt-2 text-lg font-semibold text-gray-900">{formatted || "ไม่มีกำหนด"}</h3>
+
+      <ul className="mt-4 space-y-2 text-sm text-gray-700">
+        {(day.items ?? []).map((item) => (
+          <li key={item.id} className="flex items-start gap-2">
+            <span className="mt-1 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-500" />
+            <span className="leading-snug">{item.title}</span>
+          </li>
+        ))}
+        {(!day.items || day.items.length === 0) && (
+          <li className="text-gray-500">ยังไม่มีกิจกรรมที่บันทึกไว้</li>
+        )}
       </ul>
     </div>
   );
 }
 
 export default function AgendaGrid({ days = [], forwardRef }) {
-  const cols = useAgendaCols();
   return (
-    <section ref={forwardRef} className="mx-auto max-w-6xl mt-10">
-      <h3 className="text-sm text-gray-700 px-1">ช่วงนี้มีกิจกรรมอะไรบ้าง ?</h3>
-      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {days.map((d, i) => (<AgendaCard key={i} day={d} index={i} cols={cols} />))}
+    <section ref={forwardRef} className="flex flex-col gap-6">
+      <div>
+        <p className="text-sm font-medium text-gray-500">ช่วงนี้มีกิจกรรมอะไรบ้าง?</p>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
+          ปฏิทินกิจกรรมประจำสัปดาห์
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {days.map((day, index) => (
+          <AgendaCard key={day.date ?? index} day={day} />
+        ))}
       </div>
     </section>
   );

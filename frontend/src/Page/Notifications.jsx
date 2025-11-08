@@ -61,7 +61,7 @@ function NotificationsList({ list }) {
   );
 }
 
-export default function NotificationsPage({ navigate, auth, notifications }) {
+export default function NotificationsPage({ navigate, auth, notifications, requireLogin }) {
   return (
     <div className="min-h-screen" style={{ background: THEME.page, color: THEME.text }}>
       {/* Header จริงของแอป */}
@@ -70,6 +70,8 @@ export default function NotificationsPage({ navigate, auth, notifications }) {
         navigate={navigate}
         onCalendarJump={() => navigate("/")}
         notifications={notifications}
+        onActivities={() => navigate("/activities")}
+        onRequireLogin={requireLogin}
       />
       <HeaderSpacer />
 

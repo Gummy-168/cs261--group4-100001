@@ -1,1 +1,180 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Kanit:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+/* ---------- Design Tokens via CSS Variables ---------- */
+:root {
+  color-scheme: light;
+  --color-brand-yellow: #f1c232;
+  --color-brand-yellow-dark: #e1b11f;
+  --color-brand-yellow-soft: rgba(241, 194, 50, 0.85);
+
+  --color-page: #f7f7f7;
+  --color-surface: #ffffff;
+  --color-text: #111111;
+  --font-family-base: "Kanit", "Segoe UI", Tahoma, sans-serif;
+
+  --color-bell-dot: #ef4444;
+
+  --color-banner-stage-1: rgba(0, 0, 0, 0.35);
+  --color-banner-stage-2: rgba(255, 193, 7, 0.35);
+  --color-banner-stage-3: rgba(25, 118, 210, 0.35);
+  --color-banner-stage-4: rgba(67, 160, 71, 0.35);
+  --color-banner-stage-5: rgba(233, 30, 99, 0.35);
+
+  --agenda-variant-white: #ffffff;
+  --agenda-variant-yellow: #ffe082;
+
+  background-color: var(--color-page);
+  color: var(--color-text);
+}
+
+body {
+  background-color: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+}
+
+/* ---------- Dark Mode (Manual) ---------- */
+:root[data-theme-preference="dark"] {
+  color-scheme: dark;
+  --color-brand-yellow: #f6c85f;
+  --color-brand-yellow-dark: #dca63a;
+  --color-brand-yellow-soft: rgba(246, 200, 95, 0.78);
+
+  --color-page: #111214;
+  --color-surface: #1c1d20;
+  --color-text: #f5f5f5;
+
+  --color-bell-dot: #f87171;
+
+  --color-banner-stage-1: rgba(250, 250, 250, 0.1);
+  --color-banner-stage-2: rgba(255, 202, 95, 0.22);
+  --color-banner-stage-3: rgba(96, 165, 250, 0.24);
+  --color-banner-stage-4: rgba(74, 222, 128, 0.22);
+  --color-banner-stage-5: rgba(248, 113, 113, 0.24);
+
+  --agenda-variant-white: #1f2023;
+  --agenda-variant-yellow: #514211;
+
+  background-color: var(--color-page);
+  color: var(--color-text);
+}
+
+/* ---------- System Mode ---------- */
+:root[data-theme-preference="system"] {
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme-preference="system"] {
+    color-scheme: dark;
+
+    --color-brand-yellow: #f6c85f;
+    --color-brand-yellow-dark: #dca63a;
+    --color-brand-yellow-soft: rgba(246, 200, 95, 0.78);
+
+    --color-page: #111214;
+    --color-surface: #1c1d20;
+    --color-text: #f5f5f5;
+
+    --color-bell-dot: #f87171;
+
+    --color-banner-stage-1: rgba(250, 250, 250, 0.1);
+    --color-banner-stage-2: rgba(255, 202, 95, 0.22);
+    --color-banner-stage-3: rgba(96, 165, 250, 0.24);
+    --color-banner-stage-4: rgba(74, 222, 128, 0.22);
+    --color-banner-stage-5: rgba(248, 113, 113, 0.24);
+
+    --agenda-variant-white: #1f2023;
+    --agenda-variant-yellow: #514211;
+  }
+}
+
+/* ---------- Map variables to Tailwind tokens (v4 @theme) ---------- */
+@theme {
+  /* semantic colors to use with Tailwind classes like bg-bg, text-fg, border-border */
+  --color-bg: var(--color-page);
+  --color-surface: var(--color-surface);
+  --color-fg: var(--color-text);
+  --color-brand: var(--color-brand-yellow);
+  --color-brand-strong: var(--color-brand-yellow-dark);
+  --color-brand-soft: var(--color-brand-yellow-soft);
+
+  --color-border: color-mix(in oklab, var(--color-fg) 20%, transparent);
+  --color-muted: color-mix(in oklab, var(--color-fg) 65%, transparent);
+
+  /* optional aliases to align with gray/primary slots if you like */
+  --color-gray-1: var(--color-surface);
+  --color-gray-9: var(--color-fg);
+  --color-primary: var(--color-brand);
+}
+
+/* ---------- Tailwind utility smoothing (override a few common Tailwind classes) ---------- */
+:root[data-theme-preference="dark"] .bg-white,
+:root[data-theme-preference="system"] .bg-white {
+  background-color: var(--color-surface) !important;
+}
+
+:root[data-theme-preference="dark"] .bg-gray-50,
+:root[data-theme-preference="dark"] .bg-gray-100,
+:root[data-theme-preference="system"] .bg-gray-50,
+:root[data-theme-preference="system"] .bg-gray-100 {
+  background-color: var(--color-page) !important;
+}
+
+:root[data-theme-preference="dark"] .text-gray-900,
+:root[data-theme-preference="dark"] .text-gray-800,
+:root[data-theme-preference="dark"] .text-gray-700,
+:root[data-theme-preference="system"] .text-gray-900,
+:root[data-theme-preference="system"] .text-gray-800,
+:root[data-theme-preference="system"] .text-gray-700 {
+  color: var(--color-text) !important;
+}
+
+:root[data-theme-preference="dark"] .text-gray-600,
+:root[data-theme-preference="dark"] .text-gray-500,
+:root[data-theme-preference="system"] .text-gray-600,
+:root[data-theme-preference="system"] .text-gray-500 {
+  color: rgba(226, 232, 240, 0.78) !important;
+}
+
+/* borders / divide / ring */
+:root[data-theme-preference="dark"] .border-gray-200,
+:root[data-theme-preference="dark"] .border-black\/10,
+:root[data-theme-preference="system"] .border-gray-200,
+:root[data-theme-preference="system"] .border-black\/10 {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+:root[data-theme-preference="dark"] .divide-gray-200,
+:root[data-theme-preference="system"] .divide-gray-200 {
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+:root[data-theme-preference="dark"] .border-gray-300,
+:root[data-theme-preference="system"] .border-gray-300 {
+  border-color: rgba(148, 163, 184, 0.45) !important;
+}
+:root[data-theme-preference="dark"] .ring-gray-200,
+:root[data-theme-preference="system"] .ring-gray-200,
+:root[data-theme-preference="dark"] .focus\:ring-gray-200:focus,
+:root[data-theme-preference="system"] .focus\:ring-gray-200:focus {
+  --tw-ring-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+/* Hover utilities with escaped colon (use one backslash) */
+:root[data-theme-preference="dark"] .hover\:bg-gray-100:hover,
+:root[data-theme-preference="dark"] .hover\:bg-black\/5:hover,
+:root[data-theme-preference="system"] .hover\:bg-gray-100:hover,
+:root[data-theme-preference="system"] .hover\:bg-black\/5:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Page transition */
+.route-fade { animation: routeFade 0.35s ease; }
+@keyframes routeFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Optional: Smooth theme switch */
+.theme-transition * {
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease, fill .2s ease, stroke .2s ease;
+}
