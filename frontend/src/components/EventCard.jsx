@@ -37,7 +37,7 @@ export default function EventCard({ e, loggedIn, onToggle, onRequireLogin, onOpe
   return (
     <article
       onClick={onNavigate}
-      className="group flex h-full cursor-pointer flex-col gap-5 rounded-[24px] border border-black/5 bg-white p-5 shadow-[0_16px_30px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_26px_38px_rgba(15,23,42,0.12)]"
+      className="group flex h-full cursor-pointer flex-col gap-5 rounded-[24px] border border-black/5 bg-white p-4 shadow-[0_16px_30px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_26px_38px_rgba(15,23,42,0.12)]"
     >
       <div className="relative overflow-hidden rounded-[20px] bg-gray-100">
         <div className="aspect-[4/3] w-full">

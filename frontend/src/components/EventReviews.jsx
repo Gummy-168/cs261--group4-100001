@@ -7,23 +7,77 @@ export default function EventReviews({ eventId, auth, scenario = "can-review" })
   const [newComment, setNewComment] = useState("");
   const [filter, setFilter] = useState("all");
 
+// useEffect(() => {
+//   let active = true;
+//   async function loadReviews() {
+//     try {
+//       const token = auth.token; // if your API needs auth
+//       const res = await fetch(`/api/events/${eventId}/reviews`, {
+//         headers: token ? { Authorization: `Bearer ${token}` } : {},
+//       });
+//       if (!res.ok) throw new Error("โหลดรีวิวไม่สำเร็จ");
+//       const data = await res.json();
+//       // shape: [{ id, userId, userName, rating, date, content }, …]
+//       if (active) setReviews(data);
+//     } catch (err) {
+//       console.error(err);
+//     }
+//   }
+//   loadReviews();
+//   return () => {
+//     active = false;
+//   };
+// }, [eventId, auth.token]);
+
 useEffect(() => {
   let active = true;
+  
+  // ==== MOCK MODE START ====
+  const MOCK_REVIEWS = true; // Set to false for production
+  
+  if (MOCK_REVIEWS) {
+    // Mock: Return empty reviews to show form
+    // OR: Return reviews that don't include current user to show form
+    const mockReviewData = [
+      {
+        id: 1,
+        userId: 888, // Different from current user (999)
+        userName: "นักศึกษา A",
+        rating: 5,
+        date: "2024-12-10T10:00:00",
+        content: "กิจกรรมดีมาก เรียนรู้ได้เยอะ บรรยากาศสนุก แนะนำเลยค่ะ",
+      },
+      {
+        id: 2,
+        userId: 777,
+        userName: "นักศึกษา B",
+        rating: 4,
+        date: "2024-12-09T15:30:00",
+        content: "ชอบมาก วิทยากรสอนดี มีความรู้ แต่เวลาน้อยไปหน่อย",
+      },
+    ];
+    
+    if (active) setReviews(mockReviewData);
+    return;
+  }
+  // ==== MOCK MODE END ====
+  
+  // Original API call
   async function loadReviews() {
     try {
-      const token = auth.token; // if your API needs auth
+      const token = auth.token;
       const res = await fetch(`/api/events/${eventId}/reviews`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("โหลดรีวิวไม่สำเร็จ");
       const data = await res.json();
-      // shape: [{ id, userId, userName, rating, date, content }, …]
       if (active) setReviews(data);
     } catch (err) {
       console.error(err);
     }
   }
   loadReviews();
+  
   return () => {
     active = false;
   };
@@ -181,7 +235,7 @@ const DistributionBars = () => {
               {review.userName || "ผู้ใช้ไม่ทราบชื่อ"}
             </p>
             <div className="flex items-center gap-1 text-xs mt-0.5 text-gray-500">
-              <RatingStars rating={review.rating} size="h-4 w-4"/>
+              <RatingStars rating={review.rating} size={3}/>
               <span className="ml-2">
                 {new Date(review.date).toLocaleDateString("th-TH")}
               </span>
@@ -241,7 +295,7 @@ const DistributionBars = () => {
         </span>
         {/* Stars and label grouped together */}
         <div className="flex flex-col">
-          <RatingStars rating={average} size={7} className="gap-2" />
+          <RatingStars rating={average} size={5} className="gap-2" />
           <span className="mt-1 text-xs text-gray-500">
             จากทั้งหมด {total} รีวิว
           </span>
@@ -250,43 +304,65 @@ const DistributionBars = () => {
 
         <DistributionBars />
       </div>
-      {canReview && (
-        <form
-          onSubmit={onSubmit}
-          className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4"
-        >
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setNewRating(n)}
-                className="text-xl focus:outline-none"
-              >
-                <span
-                  className={n <= newRating ? "text-[#f4b400]" : "text-gray-300"}
-                >
-                  ★
-                </span>
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="แสดงความคิดเห็นของคุณได้ที่นี่"
-            className="flex-1 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#e84c3d]"
-          />
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-[#e84c3d] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#c03428] disabled:opacity-50"
-            disabled={!newRating || newComment.trim() === ""}
+        {canReview && (
+          <form
+            onSubmit={onSubmit}
+            className="flex items-center gap-4 rounded-2xl border border-gray-200 px-5 py-3"
           >
-            ส่ง
-          </button>
-        </form>
-      )}
+            <span className="text-sm font-medium text-gray-700 shrink-0">
+              รีวิวได้ที่นี่เลย!
+            </span>
+            {/* Star rating inline */}
+            <div className="flex items-center gap-1 shrink-0">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setNewRating(n)}
+                  className="text-xl focus:outline-none transition-transform hover:scale-110"
+                  aria-label={`ให้คะแนน ${n} ดาว`}
+                >
+                  <span className={n <= newRating ? "text-[#f4b400]" : "text-gray-300"}>
+                    ★
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Label text */}
+
+            {/* Single-line input */}
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (newRating && newComment.trim().length >= 10) {
+                    onSubmit(e);
+                  }
+                }
+              }}
+              placeholder="เขียนรีวิวของคุณที่นี่... (อย่างน้อย 10 ตัวอักษร)"
+              className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#e84c3d] focus:border-transparent"
+              disabled={!newRating}
+            />
+
+            {/* Send button */}
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center rounded-full bg-[#e84c3d] p-2.5 text-white shadow-sm transition hover:bg-[#c03428] hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              disabled={!newRating || newComment.trim().length < 10}
+              aria-label="ส่งรีวิว"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+              </svg>
+            </button>
+          </form>
+        )}
+    
       <FilterButtons />
       {total === 0 ? (
         <div className="mt-8 flex justify-center">
