@@ -88,6 +88,10 @@ function transformEventToFrontend(event) {
  * @param {string} token - Auth token (optional) - ไม่จำเป็นแล้วเพราะ axiosInstance จัดการให้
  * @param {number} userId - User ID สำหรับเช็ค favorites (optional)
  */
+
+
+
+
 export async function fetchHomeData(token, userId = null) {
   try {
     let events = [];
@@ -132,6 +136,9 @@ export async function fetchHomeData(token, userId = null) {
 }
 
 }
+
+
+
 
 /**
  * Toggle Favorite Event

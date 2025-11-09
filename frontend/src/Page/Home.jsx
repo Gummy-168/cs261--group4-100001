@@ -8,16 +8,19 @@ import FreeZoneSection from "../components/FreeZone";
 import Footer from "../components/Footer";
 import { THEME } from "../theme";
 import useEventFavorites from "../hooks/useEventFavorites";
+import ReviewPendingCard from "../components/ReviewPendingCard";
 
-const mockEvent = {
-  id: "mock-1",
-  title: "กิจกรรมตัวอย่าง",
-  description: "ลองเขียนรีวิวและให้คะแนนในหน้านี้ได้เลย",
-  date: "2025-11-08",
-  image: "https://picsum.photos/400/200",
-  rating: 4.3,
-  reviewCount: 2,
-};
+// import { MOCK_EVENTS_WITH_REVIEWS } from "../lib/mockData";
+
+// const mockEvent = {
+//   id: "mock-1",
+//   title: "กิจกรรมตัวอย่าง",
+//   description: "ลองเขียนรีวิวและให้คะแนนในหน้านี้ได้เลย",
+//   date: "2025-11-08",
+//   image: "https://picsum.photos/400/200",
+//   rating: 4.3,
+//   reviewCount: 2,
+// };
 
 export default function Home({ navigate, auth, data, requireLogin }) {
   const refAgenda = useRef(null);
@@ -53,7 +56,8 @@ export default function Home({ navigate, auth, data, requireLogin }) {
     setLogoutModalOpen(false);
     setLogoutMessage("");
   };
-
+  
+  
   const { events, favorites, error, onToggleLike, favoriteIds } = useEventFavorites(
     data,
     auth,
@@ -146,38 +150,86 @@ export default function Home({ navigate, auth, data, requireLogin }) {
               onSearch={goToSearch}
             />
 
-            {auth.loggedIn && favorites.length > 0 && (
-              <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">กิจกรรมที่คุณถูกใจ</p>
-                    <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
-                      บันทึกไว้สำหรับติดตามภายหลัง
-                    </h2>
-                  </div>
-                </div>
 
-                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {[...favorites]
-                    .sort((a, b) => {
-                      const dateA = new Date(a.date ?? 0).getTime();
-                      const dateB = new Date(b.date ?? 0).getTime();
-                      return dateA - dateB;
-                    })
-                    .slice(0, 3)
-                    .map((event) => (
-                      <EventCard
-                        key={`fav-${event.id}`}
-                        e={{ ...event, liked: true }}
-                        loggedIn
-                        onToggle={onToggleLike}
-                        onRequireLogin={requireLogin}
-                        onOpen={openEventDetail}
-                      />
-                    ))}
-                </div>
-              </section>
-            )}
+              {auth.loggedIn && favorites.length > 0 && (
+                <>
+                  {/* Section 1: Liked Activities */}
+                  <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">กิจกรรมที่คุณถูกใจ</p>
+                        <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
+                          บันทึกไว้สำหรับติดตาม ภายหลัง
+                        </h2>
+                      </div>
+                    </div>
+
+                    <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {favorites
+                        .filter(event => {
+                          // Show only: liked AND not ended
+                          const hasEnded = event.endTime && new Date(event.endTime).getTime() < Date.now();
+                          return !hasEnded;
+                        })
+                        .sort((a, b) => {
+                          const dateA = new Date(a.date ?? 0).getTime();
+                          const dateB = new Date(b.date ?? 0).getTime();
+                          return dateA - dateB;
+                        })
+                        .slice(0, 3)
+                        .map((event) => (
+                          <EventCard
+                            key={`fav-${event.id}`}
+                            e={{ ...event, liked: true }}
+                            loggedIn
+                            onToggle={onToggleLike}
+                            onRequireLogin={requireLogin}
+                            onOpen={openEventDetail}
+                          />
+                        ))}
+                    </div>
+                  </section>
+
+                  {/* Section 2: Pending Review Activities */}
+                  {favorites.some(e => {
+                    const hasEnded = e.endTime && new Date(e.endTime).getTime() < Date.now();
+                    return hasEnded && !e.hasReviewed;
+                  }) && (
+                    <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">กิจกรรมที่รอคุณให้คะแนน</p>
+                          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
+                            ให้คะแนนและรีวิวกิจกรรมที่เข้าร่วมแล้ว
+                          </h2>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {favorites
+                          .filter(event => {
+                            const hasEnded = event.endTime && new Date(event.endTime).getTime() < Date.now();
+                            return hasEnded && !event.hasReviewed;
+                          })
+                          .sort((a, b) => {
+                            const dateA = new Date(a.date ?? 0).getTime();
+                            const dateB = new Date(b.date ?? 0).getTime();
+                            return dateA - dateB;
+                          })
+                          .slice(0, 3)
+                          .map((event) => (
+                            <ReviewPendingCard
+                              key={`review-${event.id}`}
+                              e={{ ...event, liked: true }}
+                              loggedIn
+                              onOpen={openEventDetail}
+                            />
+                          ))}
+                      </div>
+                    </section>
+                  )}
+                </>
+              )}
 
             <EventsSection
             list={data?.events || []}

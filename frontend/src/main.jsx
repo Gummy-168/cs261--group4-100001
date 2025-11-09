@@ -78,6 +78,11 @@ function useAuthStore() {
     };
   });
 
+  // ==== MOCK LOGIN HELPER (Add this AFTER useAuthStore function) ====
+// Uncomment to auto-login for testing:
+
+
+
   const persistProfile = useCallback((profile) => {
     if (typeof window === "undefined") return;
     if (!profile) {
@@ -196,10 +201,28 @@ function useAuthStore() {
   );
 }
 
+function useMockLogin(auth) {
+  useEffect(() => {
+    if (!auth.loggedIn) {
+      auth.login({
+        token: 'mock-token-123',
+        userId: 999,
+        remember: false,
+        profile: {
+          id: 999,
+          username: '6709616848',
+          displaynameTh: 'นักพัฒนา ทดสอบ',
+          email: 'test@dome.tu.ac.th',
+        }
+      });
+    }
+  }, [auth]);
+}
+
 function App() {
   const { path, navigate } = usePath();
   const auth = useAuthStore();
-
+  useMockLogin(auth); // Uncomment this line to enable auto-login
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [homeData, setHomeData] = useState(null);
   const [homeError, setHomeError] = useState(null);

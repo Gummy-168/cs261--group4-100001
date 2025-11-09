@@ -27,6 +27,7 @@ function NotificationsList({ list }) {
               key={n.id}
               className="grid grid-cols-[64px,1fr,10px] items-center gap-4 px-6 py-5 hover:bg-black/[.035] transition"
               title={n.title}
+              onClick={() => navigate(`/notification/${n.id}`)}
             >
               {/* icon bubble */}
               <span
@@ -62,6 +63,8 @@ function NotificationsList({ list }) {
 }
 
 export default function NotificationsPage({ navigate, auth, notifications, requireLogin }) {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen" style={{ background: THEME.page, color: THEME.text }}>
       {/* Header จริงของแอป */}
@@ -72,6 +75,7 @@ export default function NotificationsPage({ navigate, auth, notifications, requi
         notifications={notifications}
         onActivities={() => navigate("/activities")}
         onRequireLogin={requireLogin}
+        onClick={() => navigate(`/notification/${n.id}`)}
       />
       <HeaderSpacer />
 

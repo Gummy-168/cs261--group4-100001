@@ -6,6 +6,7 @@ import './App.css'
 
 import Navbar from './components/Navbar'
 import Login from './Page/Login'
+import NotificationDetail from './Page/NotificationDetail';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -14,6 +15,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/Home" element={<h1>Home Page - Welcome!</h1>} />
+      <Route path="/notification/:id" element={<NotificationDetail />} />
     </Routes>
   )
 }
