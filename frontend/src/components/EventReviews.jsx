@@ -7,82 +7,27 @@ export default function EventReviews({ eventId, auth, scenario = "can-review" })
   const [newComment, setNewComment] = useState("");
   const [filter, setFilter] = useState("all");
 
-// useEffect(() => {
-//   let active = true;
-//   async function loadReviews() {
-//     try {
-//       const token = auth.token; // if your API needs auth
-//       const res = await fetch(`/api/events/${eventId}/reviews`, {
-//         headers: token ? { Authorization: `Bearer ${token}` } : {},
-//       });
-//       if (!res.ok) throw new Error("โหลดรีวิวไม่สำเร็จ");
-//       const data = await res.json();
-//       // shape: [{ id, userId, userName, rating, date, content }, …]
-//       if (active) setReviews(data);
-//     } catch (err) {
-//       console.error(err);
-//     }
-//   }
-//   loadReviews();
-//   return () => {
-//     active = false;
-//   };
-// }, [eventId, auth.token]);
-
 useEffect(() => {
   let active = true;
-  
-  // ==== MOCK MODE START ====
-  const MOCK_REVIEWS = true; // Set to false for production
-  
-  if (MOCK_REVIEWS) {
-    // Mock: Return empty reviews to show form
-    // OR: Return reviews that don't include current user to show form
-    const mockReviewData = [
-      {
-        id: 1,
-        userId: 888, // Different from current user (999)
-        userName: "นักศึกษา A",
-        rating: 5,
-        date: "2024-12-10T10:00:00",
-        content: "กิจกรรมดีมาก เรียนรู้ได้เยอะ บรรยากาศสนุก แนะนำเลยค่ะ",
-      },
-      {
-        id: 2,
-        userId: 777,
-        userName: "นักศึกษา B",
-        rating: 4,
-        date: "2024-12-09T15:30:00",
-        content: "ชอบมาก วิทยากรสอนดี มีความรู้ แต่เวลาน้อยไปหน่อย",
-      },
-    ];
-    
-    if (active) setReviews(mockReviewData);
-    return;
-  }
-  // ==== MOCK MODE END ====
-  
-  // Original API call
   async function loadReviews() {
     try {
-      const token = auth.token;
+      const token = auth.token; // if your API needs auth
       const res = await fetch(`/api/events/${eventId}/reviews`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error("โหลดรีวิวไม่สำเร็จ");
       const data = await res.json();
+      // shape: [{ id, userId, userName, rating, date, content }, …]
       if (active) setReviews(data);
     } catch (err) {
       console.error(err);
     }
   }
   loadReviews();
-  
   return () => {
     active = false;
   };
 }, [eventId, auth.token]);
-
 
   const currentUserId = auth?.userId || auth?.profile?.id;
   const userHasReview = useMemo(

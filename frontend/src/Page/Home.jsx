@@ -10,17 +10,17 @@ import { THEME } from "../theme";
 import useEventFavorites from "../hooks/useEventFavorites";
 import ReviewPendingCard from "../components/ReviewPendingCard";
 
-import { MOCK_EVENTS_WITH_REVIEWS } from "../lib/mockData";
+// import { MOCK_EVENTS_WITH_REVIEWS } from "../lib/mockData";
 
-const mockEvent = {
-  id: "mock-1",
-  title: "กิจกรรมตัวอย่าง",
-  description: "ลองเขียนรีวิวและให้คะแนนในหน้านี้ได้เลย",
-  date: "2025-11-08",
-  image: "https://picsum.photos/400/200",
-  rating: 4.3,
-  reviewCount: 2,
-};
+// const mockEvent = {
+//   id: "mock-1",
+//   title: "กิจกรรมตัวอย่าง",
+//   description: "ลองเขียนรีวิวและให้คะแนนในหน้านี้ได้เลย",
+//   date: "2025-11-08",
+//   image: "https://picsum.photos/400/200",
+//   rating: 4.3,
+//   reviewCount: 2,
+// };
 
 export default function Home({ navigate, auth, data, requireLogin }) {
   const refAgenda = useRef(null);
@@ -58,24 +58,11 @@ export default function Home({ navigate, auth, data, requireLogin }) {
   };
   
   
-  // const { events, favorites, error, onToggleLike, favoriteIds } = useEventFavorites(
-  //   //data,
-  //   mockData,
-  //   auth,
-  //   requireLogin
-  // );
-
-  // MOCK MODE - Comment out for production
-const mockData = {
-  ...data,
-  favoriteEvents: MOCK_EVENTS_WITH_REVIEWS,
-};
-const { events, favorites, error, onToggleLike, favoriteIds } = useEventFavorites(
-  mockData, // Use mockData instead of data
-  auth,
-  requireLogin
-);
-// END MOCK MODE
+  const { events, favorites, error, onToggleLike, favoriteIds } = useEventFavorites(
+    data,
+    auth,
+    requireLogin
+  );
 
   const goToSearch = (query = "") => {
     // Navigate ไปหน้า Activities แล้วค้นหาที่นั่น
