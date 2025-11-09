@@ -6,6 +6,8 @@ import com.example.project_CS261.dto.TuVerifyResponse;
 import com.example.project_CS261.service.TuAuthService;
 import com.example.project_CS261.service.UserService;
 import com.example.project_CS261.service.AdminService;
+import com.example.project_CS261.security.JwtService;
+import com.example.project_CS261.model.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,17 +15,19 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(originPatterns = "http://localhost:5173")
 public class AuthController {
 
     private final TuAuthService tuAuthService;
     private final UserService userService;
     private final AdminService adminService;
+    private final JwtService jwtService;
 
-    public AuthController(TuAuthService tuAuthService, UserService userService, AdminService adminService) {
+    public AuthController(TuAuthService tuAuthService, UserService userService, AdminService adminService, JwtService jwtService) {
         this.tuAuthService = tuAuthService;
         this.userService = userService;
         this.adminService = adminService;
+        this.jwtService = jwtService;
     }
 
     /**
@@ -40,24 +44,27 @@ public class AuthController {
                 // 2. ดึง IP Address
                 String ipAddress = getClientIP(httpRequest);
 
-                // 3. บันทึก Login History
-                userService.saveLoginHistory(tuResponse, ipAddress);
+                // 3. บันทึก Login History และรับ User object กลับมา
+                User user = userService.saveLoginHistory(tuResponse, ipAddress);
 
                 // 4. เช็คว่าเป็น Admin หรือไม่
                 boolean isAdmin = adminService.isAdmin(tuResponse.getUsername());
 
-                // 5. ส่ง Response กลับไป (พร้อมข้อมูลว่าเป็น Admin หรือไม่)
+                // 5. Generate JWT Token
+                String token = jwtService.generateToken(user.getId(), user.getUsername());
+
+                // 6. ส่ง Response กลับไป (พร้อม JWT Token)
                 LoginResponse success = new LoginResponse(
                         true,                              // status
                         "Login Success",                   // message
-                        null,                              // token (if you use JWT, generate it here)
-                        null,                              // userId (if you want to include it)
+                        token,                             // token - Generated JWT! ✅
+                        user.getId(),                      // userId
                         tuResponse.getUsername(),          // username
                         tuResponse.getDisplaynameTh(),     // displaynameTh
                         tuResponse.getEmail(),             // email
                         tuResponse.getFaculty(),           // faculty
                         tuResponse.getDepartment(),        // department
-                        isAdmin                            // isAdmin ✅
+                        isAdmin                            // isAdmin
                 );
                 return ResponseEntity.ok(success);
             } else {

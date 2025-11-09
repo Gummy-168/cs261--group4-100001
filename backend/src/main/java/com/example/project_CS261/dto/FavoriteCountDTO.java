@@ -4,7 +4,8 @@ import lombok.*;
 
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
+// Notice this class name matches this file name
 public class FavoriteCountDTO {
-    private Long activityId;
+    private long eventId;
     private long count;
 }

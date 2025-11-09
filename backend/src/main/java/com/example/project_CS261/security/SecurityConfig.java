@@ -34,6 +34,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/events/**").permitAll()
                         .requestMatchers("/api/admin/**").permitAll()  // ⭐ ADD THIS
+                        .requestMatchers("/api/favorites/**").permitAll()  // Allow favorites without auth
                         .requestMatchers("/api/images/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
 

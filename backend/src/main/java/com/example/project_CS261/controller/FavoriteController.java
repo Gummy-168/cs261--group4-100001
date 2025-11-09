@@ -1,8 +1,9 @@
 package com.example.project_CS261.controller;
 
-import com.example.project_CS261.dto.FavoriteDTO;
 import com.example.project_CS261.model.Favorite;
 import com.example.project_CS261.service.FavoriteService;
+// FIX: Add the missing import for FavoriteDTO
+import com.example.project_CS261.dto.FavoriteDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;

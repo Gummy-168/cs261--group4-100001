@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-    
+
     private final LoginHistoryRepository loginHistoryRepository;
     private final UserRepository userRepository;
 
@@ -27,13 +27,13 @@ public class UserService {
      * บันทึก/อัพเดท User และบันทึก Login History
      */
     @Transactional
-    public void saveLoginHistory(TuVerifyResponse tuResponse, String ipAddress) {
+    public User saveLoginHistory(TuVerifyResponse tuResponse, String ipAddress) {
         logger.info("Login attempt for user: {} from IP: {}", tuResponse.getUsername(), ipAddress);
-        
+
         // 1. ตรวจสอบว่ามี User ในระบบหรือยัง
         User user = userRepository.findByUsername(tuResponse.getUsername())
-            .orElse(null);
-        
+                .orElse(null);
+
         // 2. ถ้ายังไม่มี ให้สร้าง User ใหม่
         if (user == null) {
             user = new User();
@@ -53,16 +53,19 @@ public class UserService {
             user = userRepository.save(user);
             logger.info("User updated: {}", tuResponse.getUsername());
         }
-        
+
         // 4. บันทึก Login History พร้อม user_id ที่ถูกต้อง
         LoginHistory history = new LoginHistory();
         history.setUserId(user.getId()); // ✅ ใช้ user_id จริง
         history.setUsername(tuResponse.getUsername());
         history.setIpAddress(ipAddress);
         history.setStatus("SUCCESS");
-        
+
         loginHistoryRepository.save(history);
         logger.info("Login successful for user: {} with ID: {}", tuResponse.getUsername(), user.getId());
+
+        // 5. Return User object
+        return user;
     }
 
     /**
@@ -71,11 +74,11 @@ public class UserService {
     @Transactional
     public Long saveLoginHistoryAndGetUserId(TuVerifyResponse tuResponse, String ipAddress) {
         logger.info("Login attempt for user: {} from IP: {}", tuResponse.getUsername(), ipAddress);
-        
+
         // 1. ตรวจสอบว่ามี User ในระบบหรือยัง
         User user = userRepository.findByUsername(tuResponse.getUsername())
-            .orElse(null);
-        
+                .orElse(null);
+
         // 2. ถ้ายังไม่มี ให้สร้าง User ใหม่
         if (user == null) {
             user = new User();
@@ -95,7 +98,7 @@ public class UserService {
             user = userRepository.save(user);
             logger.info("User updated: {} with ID: {}", tuResponse.getUsername(), user.getId());
         }
-        
+
         // 4. บันทึก Login History
         LoginHistory history = new LoginHistory();
         history.setUserId(user.getId());
@@ -103,9 +106,9 @@ public class UserService {
         history.setIpAddress(ipAddress);
         history.setStatus("SUCCESS");
         loginHistoryRepository.save(history);
-        
+
         logger.info("Login successful for user: {} with ID: {}", tuResponse.getUsername(), user.getId());
-        
+
         // 5. Return userId
         return user.getId();
     }

@@ -10,12 +10,13 @@ import java.util.Optional;
 @Repository
 public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     List<Favorite> findByUserId(Long userId);
-    
+
     Optional<Favorite> findByUserIdAndEventId(Long userId, Long eventId);
-    
+
     void deleteByUserIdAndEventId(Long userId, Long eventId);
-    
+
     boolean existsByUserIdAndEventId(Long userId, Long eventId);
 
-    long countByActivityId(Long activityId);
+    // FIX: This method name is now correct
+    long countByEventId(Long eventId);
 }
