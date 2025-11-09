@@ -2,7 +2,6 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
-//gay
 import { usePath } from "./lib/router";
 import { fetchHomeData } from "./lib/api";
 import Home from "./Page/Home";
@@ -15,13 +14,13 @@ import SettingsPage from "./Page/Settings";
 import EventDetailPage from "./Page/EventDetail";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingSpinner from "./components/LoadingSpinner";
+import ThemeProvider from "./ThemeProvider.jsx";
 
 const DEFAULT_PREFERENCES = {
   theme: "light",
   notifications: {
     follow: true,
     near: true,
-    soon: true,
     recommend: true,
     announce: true,
   },
@@ -229,15 +228,24 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   // Set theme
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      const isLogin = path.startsWith("/login");
-      const themePref = auth.preferences?.theme ?? "system";
-      document.documentElement.dataset.themePreference = isLogin ? "light" : themePref;
-    }
-  }, [auth.preferences?.theme, path]);
+useEffect(() => {
+  const saved = localStorage.getItem("userPreferences");
+  if (saved) {
+    try {
+      const p = JSON.parse(saved);
+      if (p.theme) document.documentElement.dataset.themePreference = p.theme;
+    } catch {}
+  }
+}, []);
 
-  // Fetch home data
+useEffect(() => {
+  const t = auth.preferences?.theme ?? "system";
+  document.documentElement.dataset.themePreference = t;
+}, [auth.preferences?.theme, path]);
+
+
+
+  // Fetch home data  
   useEffect(() => {
     let active = true;
     setHomeError(null);
@@ -386,7 +394,9 @@ function App() {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
