@@ -2,18 +2,31 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
+
 import { usePath } from "./lib/router";
 import { fetchHomeData } from "./lib/api";
+
+//pages
 import Home from "./Page/Home";
 import Login from "./Page/Login";
 import NotificationsPage from "./Page/Notifications";
 import ActivitiesPage from "./Page/Activities";
 import MyActivitiesPage from "./Page/MyActivities";
-import LoginPromptModal from "./components/LoginPromptModal";
 import SettingsPage from "./Page/Settings";
 import EventDetailPage from "./Page/EventDetail";
+
+//staff pages
+import StaffHome from "./Page/Staff_Home";
+import StaffMyActivitiesPage from "./Page/Staff_MyActivities";
+import StaffEventDetailPage from "./Page/Staff_EventDetail";
+import StaffEditEventPage from "./Page/Staff_EditEvent";
+
+//components
+import LoginPromptModal from "./components/LoginPromptModal";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingSpinner from "./components/LoadingSpinner";
+
+//theme
 import ThemeProvider from "./ThemeProvider.jsx";
 
 const DEFAULT_PREFERENCES = {
@@ -337,6 +350,53 @@ useEffect(() => {
         requireLogin={requireLogin}
       />
     );
+
+// #region Staff Route
+    } else if (path.startsWith("/staff/events/") && path.endsWith("/edit")) {
+      const eventId = decodeURIComponent(
+        path.replace("/staff/events/", "").replace("/edit", "")
+      );
+      page = (
+        <StaffEditEventPage
+          navigate={navigate}
+          auth={auth}
+          data={homeData}
+          eventId={eventId}
+        />
+      );
+    } else if (path.startsWith("/staff/events/")) {
+      const eventId = decodeURIComponent(
+        path.replace("/staff/events/", "").split("?")[0] ?? ""
+      );
+      page = (
+        <StaffEventDetailPage
+          navigate={navigate}
+          auth={auth}
+          data={homeData}
+          eventId={eventId}
+        />
+      );
+  } else if (path.startsWith("/staff/myActivities")) {
+    page = (
+      <StaffMyActivitiesPage
+        navigate={navigate}
+        auth={auth}
+        data={homeData}
+        requireLogin={requireLogin}
+      />
+    );
+  } else if (path.startsWith("/staff")) {
+    page = (
+      <StaffHome
+        navigate={navigate}
+        auth={auth}
+        data={homeData}
+        requireLogin={requireLogin}
+      />
+    );
+    
+// #endregion
+
   } else if (path.startsWith("/settings")) {
     page = <SettingsPage navigate={navigate} auth={auth} />;
   } else if (path.startsWith("/login")) {
