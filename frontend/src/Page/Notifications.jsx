@@ -63,13 +63,8 @@ function NotificationsList({ list }) {
   );
 }
 
-<<<<<<< HEAD
 export default function NotificationsPage({ auth, notifications, requireLogin }) {
   const navigate = useNavigate();
-=======
-export default function NotificationsPage({ navigate, auth, notifications, requireLogin }) {
-  //const navigate = useNavigate();
->>>>>>> 8b630c359650b43e21541fec84f9de6cdc68f5a4
 
   return (
     <div className="min-h-screen" style={{ background: THEME.page, color: THEME.text }}>

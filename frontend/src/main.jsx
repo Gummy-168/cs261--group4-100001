@@ -20,6 +20,8 @@ import StaffHome from "./Page/Staff_Home";
 import StaffMyActivitiesPage from "./Page/Staff_MyActivities";
 import StaffEventDetailPage from "./Page/Staff_EventDetail";
 import StaffEditEventPage from "./Page/Staff_EditEvent";
+import StaffEventReaderPage from "./Page/Staff_EventReader";
+
 
 //components
 import LoginPromptModal from "./components/LoginPromptModal";
@@ -352,6 +354,19 @@ useEffect(() => {
     );
 
 // #region Staff Route
+    } else if (path.startsWith("/staff/events/") && path.endsWith("/reader")) {
+      const eventId = decodeURIComponent(
+        path.replace("/staff/events/", "").replace("/reader", "").split("?")[0] ?? ""
+      );
+      page = (
+        <StaffEventReaderPage
+          navigate={navigate}
+          auth={auth}
+          data={homeData}
+          eventId={eventId}
+          requireLogin={requireLogin}
+        />
+      );
     } else if (path.startsWith("/staff/events/") && path.endsWith("/edit")) {
       const eventId = decodeURIComponent(
         path.replace("/staff/events/", "").replace("/edit", "")

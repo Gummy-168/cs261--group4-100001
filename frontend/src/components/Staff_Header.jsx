@@ -48,10 +48,12 @@ export default function StaffHeader({
 }) {
   const hidden = useScrollShowDownHideUp();
 
+  //กระดิ่ง
   const [openBell, setOpenBell] = useState(false);
   const bellRef = useRef(null);
   useClickOutside(bellRef, () => setOpenBell(false));
 
+  //โปรไฟล์
   const [openProfile, setOpenProfile] = useState(false);
   const profRef = useRef(null);
   useClickOutside(profRef, () => setOpenProfile(false));

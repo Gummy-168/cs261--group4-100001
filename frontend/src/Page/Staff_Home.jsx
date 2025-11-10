@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import StaffHeader, { HeaderSpacer } from "../components/Staff_Header";
 
+//components
+import StaffHeader, { HeaderSpacer } from "../components/Staff_Header";
 import StaffMyActivitiesSection from "../components/Staff_MyActivitiesSection";
 import StaffAddEventSection from "../components/Staff_AddEventSection";
 import Footer from "../components/Footer";
+
 import { THEME } from "../theme";
 
 export default function Staff_Home({ navigate, auth, data, requireLogin }) {

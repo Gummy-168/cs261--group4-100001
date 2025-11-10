@@ -1,8 +1,84 @@
-import { useMemo } from "react";
+// src/Page/Staff_MyActivities.jsx
+import { useMemo, useState, useRef, useEffect } from "react";
+
+//components
 import StaffHeader, { HeaderSpacer } from "../components/Staff_Header";
 import StaffEventCard from "../components/Staff_EventCard";
 import Footer from "../components/Footer";
+
 import { THEME } from "../theme";
+
+// ---- Custom dropdown แบบสวย ๆ ----
+function FilterDropdown({ label, value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  // ปิด dropdown เมื่อคลิกข้างนอก
+  useEffect(() => {
+    const handler = (e) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = options.find((opt) => opt.value === value) || options[0];
+
+  return (
+    <div className="relative inline-flex items-center gap-2" ref={ref}>
+      <span className="text-gray-500 whitespace-nowrap text-xs md:text-sm">
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center justify-between rounded-full border border-black/10 bg-white px-3.5 py-1.5 text-xs md:text-sm text-gray-800 shadow-sm hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-[#e84c3d]/30"
+      >
+        <span className="mr-2 truncate max-w-[8rem] md:max-w-[10rem] text-left">
+          {selected?.label}
+        </span>
+        <svg
+          viewBox="0 0 24 24"
+          className={`h-4 w-4 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-2xl border border-black/10 bg-white py-1 shadow-lg max-h-64 overflow-y-auto">
+          {options.map((opt) => {
+            const active = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={
+                  "block w-full px-4 py-2.5 text-left text-sm transition " +
+                  (active
+                    ? "bg-[#e84c3d]/10 text-[#e84c3d] font-semibold"
+                    : "text-gray-800 hover:bg-black/5")
+                }
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function StaffMyActivitiesPage({
   navigate,
@@ -10,28 +86,117 @@ export default function StaffMyActivitiesPage({
   data,
   requireLogin,
 }) {
-  const isLoggedIn = auth?.loggedIn;
+  // กัน null / undefined
+  const safeData = data || {
+    events: [],
+    notifications: [],
+  };
 
-  // ดึงรายการกิจกรรมที่สตาฟสร้าง (ตอนนี้สมมติอยู่ใน data.events ก่อนนะ)
-  const staffEvents = useMemo(() => {
-    const list = data?.events ?? [];
-    // เรียงจากแก้ไขล่าสุด -> เก่าสุด (ถ้าไม่มี updatedAt ก็ใช้ date แทน)
-    return [...list].sort((a, b) => {
-      const tA = new Date(a?.updatedAt ?? a?.date ?? 0).getTime();
-      const tB = new Date(b?.updatedAt ?? b?.date ?? 0).getTime();
-      return tB - tA;
+  // สมมติว่า events ใน data คือกิจกรรมที่ staff สร้าง
+  const staffEvents = safeData.events || [];
+
+  // ----- state สำหรับค้นหา + filter -----
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ทั้งหมด");
+  const [sortKey, setSortKey] = useState("recent"); // recent | startDate | likes
+
+  // ตัวเลือกประเภท (ดึงจากข้อมูลจริง + "ทั้งหมด")
+  const categoryOptionsRaw = useMemo(() => {
+    const dynamic = new Set();
+    staffEvents.forEach((e) => {
+      if (e.category) dynamic.add(e.category);
     });
-  }, [data?.events]);
 
+    return [
+      "ทั้งหมด",
+      // 🔧 TODO: เพิ่มตัวเลือกประเภทแบบ fix เองได้ที่นี่
+      // "วิชาการ",
+      // "บันเทิง",
+      // "กีฬา",
+      // "บำเพ็ญประโยชน์",
+      ...Array.from(dynamic),
+    ];
+  }, [staffEvents]);
+
+  // แปลงเป็น {value, label} สำหรับ Dropdown
+  const categoryOptions = categoryOptionsRaw.map((cat) => ({
+    value: cat,
+    label: cat === "ทั้งหมด" ? "ทุกประเภท" : cat,
+  }));
+
+  const sortOptions = [
+    { value: "recent", label: "แก้ไขล่าสุด" },
+    { value: "startDate", label: "วันเริ่มกิจกรรม" },
+    { value: "likes", label: "จำนวนถูกใจ" },
+  ];
+
+  // ฟังก์ชันเปิดหน้า event detail ของ staff
   const openEventDetail = (event) => {
     if (!event?.id) return;
     navigate(`/staff/events/${encodeURIComponent(event.id)}`);
   };
+  
+  // ฟังก์ชันใช้กับปุ่ม "เพิ่มกิจกรรม" ใน navbar
+  const handleAddActivityJump = () => {
+    navigate("/staff");
+    // ให้ browser เปลี่ยนหน้าแล้วค่อย scroll ลงไปหา section เพิ่มกิจกรรม
+    setTimeout(() => {
+      const el = document.getElementById("staff-add-event");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 0);
+  };
 
+  // กรอง + เรียงลำดับรายการ
+  const filteredEvents = useMemo(() => {
+    let list = [...staffEvents];
 
-  const goToStaffHome = () => navigate("/staff");
-  const goToLogin = () => navigate("/login");
-  const goToAddEvent = () => navigate("/staff#staff-add-event");
+    // ค้นหา
+    const term = searchTerm.trim().toLowerCase();
+    if (term) {
+      list = list.filter((e) => {
+        const text = [e.title, e.description, e.location, e.category]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return text.includes(term);
+      });
+    }
+
+    // กรองตามประเภท
+    if (categoryFilter !== "ทั้งหมด") {
+      list = list.filter(
+        (e) => (e.category || "").toString() === categoryFilter
+      );
+    }
+
+    // เรียงลำดับ
+    list.sort((a, b) => {
+      if (sortKey === "startDate") {
+        const da = new Date(a.startTime || a.date || 0).getTime();
+        const db = new Date(b.startTime || b.date || 0).getTime();
+        return da - db; // ใกล้เริ่มก่อน
+      }
+
+      if (sortKey === "likes") {
+        const la = a.likes ?? a.favoriteCount ?? 0;
+        const lb = b.likes ?? b.favoriteCount ?? 0;
+        return lb - la; // ถูกใจเยอะก่อน
+      }
+
+      // recent: ใช้ updatedAt / createdAt / date (ล่าสุดก่อน)
+      const ta = new Date(
+        a.updatedAt || a.createdAt || a.date || 0
+      ).getTime();
+      const tb = new Date(
+        b.updatedAt || b.createdAt || b.date || 0
+      ).getTime();
+      return tb - ta;
+    });
+
+    return list;
+  }, [staffEvents, searchTerm, categoryFilter, sortKey]);
 
   return (
     <div
@@ -41,128 +206,102 @@ export default function StaffMyActivitiesPage({
       <StaffHeader
         auth={auth}
         navigate={navigate}
-        notifications={data?.notifications ?? []}
-        onSearch={goToStaffHome}
+        notifications={safeData.notifications || []}
+        onSearch={() => navigate("/staff/myActivities")}
         onActivities={() => navigate("/staff/myActivities")}
-        onAddActivityJump={goToAddEvent}
+        // ให้ปุ่ม "เพิ่มกิจกรรม" พากลับไปหน้า /staff แล้วเลื่อนลงไป AddEventSection
+        onAddActivityJump={handleAddActivityJump}
         onRequireLogin={requireLogin}
       />
       <HeaderSpacer />
 
       <main className="flex-1 pb-20">
-        <div className="mx-auto flex w-full max-w-8/10 flex-col gap-10 px-4 pt-10">
-          {/* แบนเนอร์หัวข้อเพจ */}
-          <section className="rounded-[28px] border border-black/10 bg-white px-6 py-8 shadow-sm">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between md:gap-6">
-              <div>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
-                  จัดการกิจกรรมที่คุณสร้าง
+        <div className="mx-auto flex w-full max-w-8/10 flex-col gap-8 px-4 pt-10">
+          {/* ส่วนหัว + ค้นหา + filter */}
+          <section className="rounded-[28px] border border-black/10 bg-white px-6 py-6 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                  กิจกรรมของฉัน
                 </h1>
-                <p className="mt-2 text-lg text-gray-600">
-                  ดูภาพรวมกิจกรรมทั้งหมดที่คุณสร้างขึ้น แก้ไขรายละเอียด
-                  หรือลบกิจกรรมที่ไม่ใช้แล้วได้จากหน้านี้
+                <p className="text-sm text-gray-600">
+                  จัดการกิจกรรมที่คุณสร้างทั้งหมด ดูภาพรวม ปรับแก้รายละเอียด
+                  และจัดการกิจกรรมที่คุณสร้างในระบบ MeetMeet
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={goToAddEvent}
-                className="inline-flex items-center justify-center rounded-full bg-[#e84c3d] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#d63a2b]"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="mr-1.5 h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 5v14" />
-                  <path d="M5 12h14" />
-                </svg>
-                เพิ่มกิจกรรม
-              </button>
+            </div>
+
+            {/* แถวค้นหา + dropdown ประเภท + dropdown เรียงลำดับ */}
+            <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+              {/* ช่องค้นหา */}
+              <div className="relative flex-1 max-w-xl">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="6" />
+                    <path d="m20 20-3.6-3.6" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ค้นหากิจกรรมตามชื่อ คำอธิบาย หรือสถานที่..."
+                  className="w-full rounded-full border border-black/10 bg-gray-50 px-9 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#e84c3d] focus:outline-none focus:ring-2 focus:ring-[#e84c3d]/30"
+                />
+              </div>
+
+              {/* กลุ่ม dropdown ทางขวา */}
+              <div className="flex flex-wrap items-center gap-3">
+                <FilterDropdown
+                  label="ประเภท"
+                  value={categoryFilter}
+                  options={categoryOptions}
+                  onChange={setCategoryFilter}
+                />
+                <FilterDropdown
+                  label="เรียงลำดับตาม"
+                  value={sortKey}
+                  options={sortOptions}
+                  onChange={setSortKey}
+                />
+              </div>
             </div>
           </section>
 
-          {/* ถ้ายังไม่ได้ล็อกอิน */}
-          {!isLoggedIn ? (
+          {/* รายการการ์ด */}
+          {filteredEvents.length === 0 ? (
             <section className="rounded-[28px] border border-dashed border-black/10 bg-white px-6 py-12 text-center shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900">
-                เข้าสู่ระบบเพื่อดูและจัดการกิจกรรมของคุณ
-              </h2>
-              <p className="mt-3 text-sm text-gray-600">
-                ลงชื่อเข้าใช้เพื่อสร้าง แก้ไข
-                และติดตามสถิติกิจกรรมที่คุณดูแล
-              </p>
-              <div className="mt-6 flex justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={goToLogin}
-                  className="inline-flex items-center justify-center rounded-full bg-red-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-                >
-                  เข้าสู่ระบบ
-                </button>
-                <button
-                  type="button"
-                  onClick={goToStaffHome}
-                  className="inline-flex items-center justify-center rounded-full border border-black/10 px-6 py-2 text-sm font-semibold text-gray-800 transition hover:border-black/30 hover:bg-black/5"
-                >
-                  กลับหน้าแรก
-                </button>
-              </div>
-            </section>
-          ) : staffEvents.length === 0 ? (
-            // ล็อกอินแล้วแต่ยังไม่มีงานที่สร้าง
-            <section className="rounded-[28px] border border-black/10 bg-white px-6 py-16 text-center shadow-sm flex flex-col items-center justify-center">
-              <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900">
                 ยังไม่มีกิจกรรมที่คุณสร้าง
               </h2>
-              <p className="mt-3 text-sm text-gray-600 max-w-md">
-                เริ่มต้นสร้างกิจกรรมแรกของคุณเพื่อประชาสัมพันธ์ให้กับนิสิต
-                และติดตามจำนวนผู้เข้าร่วมได้จากหน้านี้
+              <p className="mt-3 text-sm text-gray-600">
+                เริ่มเพิ่มกิจกรรมแรกของคุณจากหน้า Staff Home
+                เพื่อให้นิสิตเข้ามาดูและเข้าร่วมได้เลย
               </p>
-              <button
-                type="button"
-                onClick={goToAddEvent}
-                className="mt-6 inline-flex items-center justify-center rounded-full bg-red-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-              >
-                เพิ่มกิจกรรม
-              </button>
             </section>
           ) : (
-            // มีรายการกิจกรรมแล้ว
             <section className="rounded-[28px] border border-black/10 bg-white px-6 py-8 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  ทั้งหมด {staffEvents.length} กิจกรรมที่คุณดูแล
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-base md:text-lg font-semibold text-gray-900">
+                  ทั้งหมด {filteredEvents.length} กิจกรรมที่คุณสร้าง
                 </h2>
-                <button
-                  type="button"
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: "smooth" })
-                  }
-                  className="inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-700 transition hover:border-black/30 hover:bg-black/5"
-                >
-                  กลับไปด้านบน
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <path d="M12 19V5m0 0-6 6m6-6 6 6" />
-                  </svg>
-                </button>
               </div>
 
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {staffEvents.map((event) => (
+              <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredEvents.map((event) => (
                   <StaffEventCard
                     key={event.id}
                     e={event}
-                    loggedIn={isLoggedIn}
+                    loggedIn={auth?.loggedIn}
+                    onToggle={() => {}}
                     onRequireLogin={requireLogin}
-                    onOpen={() => openEventDetail(event)}
+                    onOpen={openEventDetail}
                   />
                 ))}
               </div>
