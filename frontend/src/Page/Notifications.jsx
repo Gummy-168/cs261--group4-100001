@@ -1,5 +1,6 @@
 import React from "react";
 import Header from "../components/Header"; 
+import { useNavigate } from "react-router-dom";
 
 const THEME = {
   page: "#f7f7f7",
@@ -62,7 +63,7 @@ function NotificationsList({ list }) {
   );
 }
 
-export default function NotificationsPage({ navigate, auth, notifications, requireLogin }) {
+export default function NotificationsPage({ auth, notifications, requireLogin }) {
   const navigate = useNavigate();
 
   return (
