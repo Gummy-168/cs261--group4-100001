@@ -2,26 +2,38 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
-//gay
+
 import { usePath } from "./lib/router";
 import { fetchHomeData } from "./lib/api";
+
+//pages
 import Home from "./Page/Home";
 import Login from "./Page/Login";
 import NotificationsPage from "./Page/Notifications";
 import ActivitiesPage from "./Page/Activities";
 import MyActivitiesPage from "./Page/MyActivities";
-import LoginPromptModal from "./components/LoginPromptModal";
 import SettingsPage from "./Page/Settings";
 import EventDetailPage from "./Page/EventDetail";
+
+//staff pages
+import StaffHome from "./Page/Staff_Home";
+import StaffMyActivitiesPage from "./Page/Staff_MyActivities";
+import StaffEventDetailPage from "./Page/Staff_EventDetail";
+import StaffEditEventPage from "./Page/Staff_EditEvent";
+
+//components
+import LoginPromptModal from "./components/LoginPromptModal";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingSpinner from "./components/LoadingSpinner";
+
+//theme
+import ThemeProvider from "./ThemeProvider.jsx";
 
 const DEFAULT_PREFERENCES = {
   theme: "light",
   notifications: {
     follow: true,
     near: true,
-    soon: true,
     recommend: true,
     announce: true,
   },
@@ -229,15 +241,24 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   // Set theme
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      const isLogin = path.startsWith("/login");
-      const themePref = auth.preferences?.theme ?? "system";
-      document.documentElement.dataset.themePreference = isLogin ? "light" : themePref;
-    }
-  }, [auth.preferences?.theme, path]);
+useEffect(() => {
+  const saved = localStorage.getItem("userPreferences");
+  if (saved) {
+    try {
+      const p = JSON.parse(saved);
+      if (p.theme) document.documentElement.dataset.themePreference = p.theme;
+    } catch {}
+  }
+}, []);
 
-  // Fetch home data
+useEffect(() => {
+  const t = auth.preferences?.theme ?? "system";
+  document.documentElement.dataset.themePreference = t;
+}, [auth.preferences?.theme, path]);
+
+
+
+  // Fetch home data  
   useEffect(() => {
     let active = true;
     setHomeError(null);
@@ -329,6 +350,53 @@ function App() {
         requireLogin={requireLogin}
       />
     );
+
+// #region Staff Route
+    } else if (path.startsWith("/staff/events/") && path.endsWith("/edit")) {
+      const eventId = decodeURIComponent(
+        path.replace("/staff/events/", "").replace("/edit", "")
+      );
+      page = (
+        <StaffEditEventPage
+          navigate={navigate}
+          auth={auth}
+          data={homeData}
+          eventId={eventId}
+        />
+      );
+    } else if (path.startsWith("/staff/events/")) {
+      const eventId = decodeURIComponent(
+        path.replace("/staff/events/", "").split("?")[0] ?? ""
+      );
+      page = (
+        <StaffEventDetailPage
+          navigate={navigate}
+          auth={auth}
+          data={homeData}
+          eventId={eventId}
+        />
+      );
+  } else if (path.startsWith("/staff/myActivities")) {
+    page = (
+      <StaffMyActivitiesPage
+        navigate={navigate}
+        auth={auth}
+        data={homeData}
+        requireLogin={requireLogin}
+      />
+    );
+  } else if (path.startsWith("/staff")) {
+    page = (
+      <StaffHome
+        navigate={navigate}
+        auth={auth}
+        data={homeData}
+        requireLogin={requireLogin}
+      />
+    );
+    
+// #endregion
+
   } else if (path.startsWith("/settings")) {
     page = <SettingsPage navigate={navigate} auth={auth} />;
   } else if (path.startsWith("/login")) {
@@ -386,7 +454,9 @@ function App() {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
