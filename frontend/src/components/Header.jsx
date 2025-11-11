@@ -59,6 +59,7 @@ export default function Header({
   const isLoggedIn = auth?.loggedIn || false;
   const unreadCount = isLoggedIn ? notifications.filter((n) => n.unread).length : 0;
   const user = auth?.profile || {};
+  const avatarSrc = user?.avatarUrl || "";
 
   // Handle Logout
   const handleLogout = () => {
@@ -219,9 +220,17 @@ export default function Header({
                 onClick={() => setOpenProfile(!openProfile)}
                 aria-label="โปรไฟล์"
               >
+              {avatarSrc ? (
+                <img
+                  src={avatarSrc}
+                  alt=""
+                  className="w-8 h-8 rounded-full object-cover ring-1 ring-black/10"
+                />
+              ) : (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
                   {user.displaynameTh?.charAt(0) || user.username?.charAt(0) || 'U'}
                 </div>
+              )}
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="m6 9 6 6 6-6" />
                 </svg>
