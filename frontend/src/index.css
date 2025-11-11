@@ -24,6 +24,12 @@
   --agenda-variant-white: #ffffff;
   --agenda-variant-yellow: #ffe082;
 
+  --notif-bg:#ffffff;
+  --notif-fg:#111111;
+  --notif-border:rgba(0,0,0,.12);
+  --notif-hover:rgba(0,0,0,.04);
+  --notif-muted:rgba(0,0,0,.6);
+
   background-color: var(--color-page);
   color: var(--color-text);
 }
@@ -56,6 +62,12 @@ body {
   --agenda-variant-white: #1f2023;
   --agenda-variant-yellow: #514211;
 
+  --notif-bg:#000000;
+  --notif-fg:#f5f5f5;
+  --notif-border:rgba(255,255,255,.18);
+  --notif-hover:rgba(255,255,255,.08);
+  --notif-muted:rgba(255,255,255,.65);
+
   background-color: var(--color-page);
   color: var(--color-text);
 }
@@ -86,6 +98,13 @@ body {
 
     --agenda-variant-white: #1f2023;
     --agenda-variant-yellow: #514211;
+    
+    --notif-bg:#000000;
+    --notif-fg:#f5f5f5;
+    --notif-border:rgba(255,255,255,.18);
+    --notif-hover:rgba(255,255,255,.08);
+    --notif-muted:rgba(255,255,255,.65);
+    
   }
 }
 

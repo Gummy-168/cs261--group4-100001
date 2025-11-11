@@ -162,54 +162,52 @@ export default function Header({
 
             {/* Notifications Dropdown */}
             {openBell && isLoggedIn && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 max-h-96 overflow-y-auto">
-                <div className="px-4 py-2 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900">แจ้งเตือน</h3>
-                </div>
-                {notifications.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-gray-500">
-                    ไม่มีการแจ้งเตือน
-                  </div>
-                ) : (
-                  <div>
-                    {notifications.map((notif) => (
-                      <div
-                        key={notif.id}
-                        className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 ${
-                          notif.unread ? 'bg-blue-50' : ''
-                        }`}
-                        onClick={() => {
-                          setOpenBell(false);
-                          navigate('/notifications');
-                        }}
-                      >
-                        <div className="flex gap-3">
-                          <span className="text-2xl">{notif.icon}</span>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm text-gray-900">{notif.title}</p>
-                            <p className="text-xs text-gray-600 mt-1">{notif.detail}</p>
-                          </div>
-                          {notif.unread && (
-                            <span className="w-2 h-2 bg-blue-600 rounded-full mt-1"></span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="px-4 py-2 border-t border-gray-200">
-                  <button
-                    onClick={() => {
-                      setOpenBell(false);
-                      navigate('/notifications');
-                    }}
-                    className="text-sm text-blue-600 hover:underline w-full text-center"
-                  >
-                    ดูทั้งหมด
-                  </button>
-                </div>
+            <div
+              className="absolute right-0 mt-2 w-80 rounded-lg shadow-xl border py-2 max-h-96 overflow-y-auto
+                        bg-[var(--notif-bg)] text-[var(--notif-fg)] border-[var(--notif-border)]"
+            >
+              <div className="px-4 py-2 border-b border-[var(--notif-border)]">
+                <h3 className="font-semibold">แจ้งเตือน</h3>
               </div>
-            )}
+
+              {notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center text-[var(--notif-muted)]">
+                  ไม่มีการแจ้งเตือน
+                </div>
+              ) : (
+                <div>
+                  {notifications.map((notif) => (
+                    <div
+                     key={notif.id}
+                     className={`px-4 py-3 cursor-pointer border-b border-[var(--notif-border)]
+                                 hover:bg-[var(--notif-hover)]
+                                 ${notif.unread ? 'bg-[color-mix(in_oklab,var(--notif-fg)_6%,transparent)]' : ''}`}
+                      onClick={() => { setOpenBell(false); navigate('/notifications'); }}
+                    >
+                      <div className="flex gap-3">
+                        <span className="text-2xl">{notif.icon}</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{notif.title}</p>
+                          <p className="text-xs mt-1 text-[var(--notif-muted)]">{notif.detail}</p>
+                        </div>
+                        {notif.unread && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="px-4 py-2 border-t border-[var(--notif-border)]">
+                <button
+                  onClick={() => { setOpenBell(false); navigate('/notifications'); }}
+                  className="text-sm text-[var(--color-brand)] hover:underline w-full text-center"
+                >
+                  ดูทั้งหมด
+                </button>
+              </div>
+            </div>
+          )}
+
           </div>
 
           {/* Profile / Login */}
