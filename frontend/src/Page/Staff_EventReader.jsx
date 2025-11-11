@@ -1,65 +1,50 @@
-// src/Page/Staff_EventReader.jsx
-import { useEffect, useMemo, useState } from "react";
+// src/Page/Staff_EventReader.jsx (refactored + jump)
+import React, { useEffect, useMemo, useState } from "react";
 import StaffHeader, { HeaderSpacer } from "../components/Staff_Header";
 import Footer from "../components/Footer";
-import { THEME } from "../theme";
+import { THEME, FLAGS } from "../theme";
 import { updateFavoriteEvent } from "../lib/api";
+import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
 import EventReviews from "../components/EventReviews";
 
-// ----- helper เหมือนฝั่ง user -----
-
+// --- helpers -------------------------------------------------
 function combineEventSources(data, eventId) {
   if (!data) return null;
   const targetId = eventId?.toString();
   if (!targetId) return null;
-
-  const pool = [
-    ...(data.events ?? []),
-    ...(data.favoriteEvents ?? []),
-  ];
-  return (
-    pool.find(
-      (item) =>
-        item &&
-        item.id !== undefined &&
-        item.id !== null &&
-        item.id.toString() === targetId
-    ) ?? null
-  );
+  const pool = [...(data.events ?? []), ...(data.favoriteEvents ?? [])];
+  return pool.find((i) => i && i.id != null && i.id.toString() === targetId) ?? null;
 }
 
-function formatDateTime(iso, options = {}) {
-  if (!iso) return "";
-  try {
-    const date = new Date(iso);
-    return date.toLocaleString("th-TH", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      ...options,
-    });
-  } catch {
-    return "";
-  }
-}
+const fmt = {
+  date(iso) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" });
+    } catch {
+      return "";
+    }
+  },
+  dateTime(iso, options = {}) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("th-TH", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        ...options,
+      });
+    } catch {
+      return "";
+    }
+  },
+};
 
-function formatDate(iso) {
-  if (!iso) return "";
-  try {
-    const date = new Date(iso);
-    return date.toLocaleDateString("th-TH", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return "";
-  }
-}
-
-function EventMetaChip({ label }) {
+function MetaChip({ label }) {
   if (!label) return null;
   return (
     <span className="inline-flex items-center rounded-full border border-black/10 px-4 py-1.5 text-sm font-medium text-gray-700">
@@ -68,8 +53,31 @@ function EventMetaChip({ label }) {
   );
 }
 
-// ----- main page -----
+function FavoriteButton({ liked, saving, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={saving}
+      className={`absolute right-6 top-6 inline-flex h-12 w-12 items-center justify-center rounded-full border bg-white/95 shadow-sm transition hover:bg-white ${
+        liked ? "border-red-200 text-red-600" : "border-black/10 text-gray-500"
+      } disabled:cursor-not-allowed disabled:opacity-80`}
+      aria-label={liked ? "นำออกจากกิจกรรมที่ถูกใจ" : "เพิ่มในกิจกรรมที่ถูกใจ"}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className="h-[20px] w-[20px]"
+        fill={liked ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.8"
+      >
+        <path d="M12 21s-7-4.35-9.5-7.5C.5 10 2.5 6 6 6c2 0 3.5 1 4.5 2 1-1 2.5-2 4.5-2 3.5 0 5.5 4 3.5 7.5S12 21 12 21z" />
+      </svg>
+    </button>
+  );
+}
 
+// --- main page -------------------------------------------------
 export default function StaffEventReaderPage({
   navigate,
   auth,
@@ -77,10 +85,8 @@ export default function StaffEventReaderPage({
   eventId,
   requireLogin,
 }) {
-  const event = useMemo(
-    () => combineEventSources(data, eventId),
-    [data, eventId]
-  );
+  const event = useMemo(() => combineEventSources(data, eventId), [data, eventId]);
+
   const [liked, setLiked] = useState(Boolean(event?.liked));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -91,26 +97,16 @@ export default function StaffEventReaderPage({
   }, [event?.id, event?.liked]);
 
   const onBack = () => {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      navigate("/staff/myActivities");
-    }
+    if (window.history.length > 1) window.history.back();
+    else navigate("/staff/myActivities");
   };
 
   const onToggleFavorite = async () => {
     if (!event) return;
-
-    if (!auth?.loggedIn) {
-      requireLogin?.();
-      return;
-    }
+    if (!auth?.loggedIn) return requireLogin?.();
 
     const userId = auth?.userId || auth?.profile?.id;
-    if (!userId) {
-      requireLogin?.();
-      return;
-    }
+    if (!userId) return requireLogin?.();
 
     const next = !liked;
     setLiked(next);
@@ -125,25 +121,19 @@ export default function StaffEventReaderPage({
     setSaving(false);
   };
 
-  // ฟังก์ชันใช้กับปุ่ม "เพิ่มกิจกรรม" ใน navbar
   const handleAddActivityJump = () => {
-    navigate("/staff");
-    // ให้ browser เปลี่ยนหน้าแล้วค่อย scroll ลงไปหา section เพิ่มกิจกรรม
-    setTimeout(() => {
-      const el = document.getElementById("staff-add-event");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 0);
+    // ✅ ใช้ util ที่แนบ hash แล้วรอ DOM พร้อม ก่อน scroll พร้อมชดเชย header
+    navigateAndJump(navigate, "/staff", "staff-add-event", {
+      offsetPx: FLAGS?.HEADER_HEIGHT_PX || 0,
+      highlightMs: 900,
+    });
   };
+
+  const startISO = event?.startTime ?? event?.date;
 
   return (
     <div
-      style={{
-        background: THEME.page,
-        color: THEME.text,
-        minHeight: "100vh",
-      }}
+      style={{ background: THEME.page, color: THEME.text, minHeight: "100vh" }}
     >
       <StaffHeader
         auth={auth}
@@ -204,64 +194,41 @@ export default function StaffEventReaderPage({
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
+
+                <FavoriteButton
+                  liked={liked}
+                  saving={saving}
                   onClick={onToggleFavorite}
-                  disabled={saving}
-                  className={`absolute right-6 top-6 inline-flex h-12 w-12 items-center justify-center rounded-full border bg-white/95 text-red-500 shadow-sm transition hover:bg-white ${
-                    liked
-                      ? "border-red-200 text-red-600"
-                      : "border-black/10 text-gray-500"
-                  } disabled:cursor-not-allowed disabled:opacity-80`}
-                  aria-label={
-                    liked
-                      ? "นำออกจากกิจกรรมที่ถูกใจ"
-                      : "เพิ่มในกิจกรรมที่ถูกใจ"
-                  }
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="h-[20px] w-[20px]"
-                    fill={liked ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <path d="M12 21s-7-4.35-9.5-7.5C.5 10 2.5 6 6 6c2 0 3.5 1 4.5 2 1-1 2.5-2 4.5-2 3.5 0 5.5 4 3.5 7.5S12 21 12 21z" />
-                  </svg>
-                </button>
+                />
               </div>
 
               <div className="flex flex-col gap-8 px-6 py-8 md:px-10 md:py-12">
                 <header className="flex flex-col gap-3">
                   <span className="text-sm font-medium text-gray-500">
-                    {event.category || "กิจกรรม"} • โพสต์เมื่อ{" "}
-                    {formatDate(event.startTime)}
+                    {event.category || "กิจกรรม"} • โพสต์เมื่อ {fmt.date(startISO)}
                   </span>
                   <h1 className="text-3xl font-semibold leading-tight text-gray-900">
                     {event.title}
                   </h1>
-                  {event.host ? (
+                  {event.host && (
                     <p className="text-sm font-medium text-gray-600">
                       จัดโดย {event.host}
                     </p>
-                  ) : null}
+                  )}
                 </header>
 
+                {/* Chips: driven by data array */}
                 <section className="flex flex-wrap items-center gap-3">
-                  <EventMetaChip label={event.type} />
-                  <EventMetaChip label={event.unit} />
-                  <EventMetaChip label={formatDateTime(event.startTime)} />
-                  {event.location ? (
-                    <EventMetaChip label={event.location} />
-                  ) : null}
-                  {event.maxCapacity ? (
-                    <EventMetaChip
-                      label={`จำนวนรับ ${event.maxCapacity} คน`}
-                    />
-                  ) : null}
-                  {event.fee ? (
-                    <EventMetaChip label={`ค่าลงทะเบียน ${event.fee}`} />
-                  ) : null}
+                  {[
+                    event.type,
+                    event.unit,
+                    fmt.dateTime(startISO),
+                    event.location,
+                    event.maxCapacity ? `จำนวนรับ ${event.maxCapacity} คน` : null,
+                    event.fee ? `ค่าลงทะเบียน ${event.fee}` : null,
+                  ].map((label, i) => (
+                    <MetaChip key={i} label={label} />
+                  ))}
                 </section>
 
                 <section className="space-y-3">
@@ -269,12 +236,11 @@ export default function StaffEventReaderPage({
                     รายละเอียดเพิ่มเติม
                   </h2>
                   <p className="whitespace-pre-line text-sm leading-7 text-gray-700">
-                    {event.description?.trim() ||
-                      "ยังไม่มีรายละเอียดกิจกรรม"}
+                    {event.description?.trim() || "ยังไม่มีรายละเอียดกิจกรรม"}
                   </p>
                 </section>
 
-                {event.website ? (
+                {event.website && (
                   <section className="space-y-3">
                     <h2 className="text-xl font-semibold text-gray-900">
                       ช่องทางการสมัคร
@@ -297,7 +263,7 @@ export default function StaffEventReaderPage({
                       </svg>
                     </a>
                   </section>
-                ) : null}
+                )}
 
                 <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm text-gray-500">
@@ -308,11 +274,7 @@ export default function StaffEventReaderPage({
                     className="inline-flex items-center justify-center rounded-full bg-[#e84c3d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#c03428]"
                     onClick={() => {
                       if (event.website) {
-                        window.open(
-                          event.website,
-                          "_blank",
-                          "noopener,noreferrer"
-                        );
+                        window.open(event.website, "_blank", "noopener,noreferrer");
                       } else {
                         requireLogin?.();
                       }
@@ -322,11 +284,11 @@ export default function StaffEventReaderPage({
                   </button>
                 </section>
 
-                {error ? (
+                {error && (
                   <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                   </div>
-                ) : null}
+                )}
 
                 {event && <EventReviews eventId={event.id} auth={auth} />}
               </div>

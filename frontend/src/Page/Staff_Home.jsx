@@ -1,23 +1,34 @@
+// src/Page/Staff_Home.jsx
 import { useEffect, useState } from "react";
 
-//components
+// components
 import StaffHeader, { HeaderSpacer } from "../components/Staff_Header";
 import StaffMyActivitiesSection from "../components/Staff_MyActivitiesSection";
 import StaffAddEventSection from "../components/Staff_AddEventSection";
 import Footer from "../components/Footer";
 
-import { THEME } from "../theme";
+// theme
+import { THEME, FLAGS } from "../theme";
+
+// jump utils (generic ใช้ได้ทั้ง user/staff)
+import { navigateAndJump, initHashJumpOnMount } from "../lib/jump";
 
 export default function Staff_Home({ navigate, auth, data, requireLogin }) {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [logoutMessage, setLogoutMessage] = useState("");
 
   // กันกรณี data เป็น null / undefined
-  const safeData = data || {
-    events: [],
-    notifications: [],
-  };
+  const safeData = data || { events: [], notifications: [] };
 
+  // รองรับกรณีเข้ามาพร้อม #staff-add-event (หรือ hash อื่น ๆ)
+  useEffect(() => {
+    initHashJumpOnMount({
+      offsetPx: FLAGS?.HEADER_HEIGHT_PX || 0,
+      highlightMs: 900,
+    });
+  }, []);
+
+  // แสดง modal หลัง logout ผ่าน query string
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -32,6 +43,7 @@ export default function Staff_Home({ navigate, auth, data, requireLogin }) {
     setLogoutMessage(message);
     setLogoutModalOpen(true);
 
+    // เคลียร์ query ออก (แต่คง path เดิม)
     params.delete("loggedOut");
     params.delete("message");
     const nextSearch = params.toString();
@@ -63,12 +75,9 @@ export default function Staff_Home({ navigate, auth, data, requireLogin }) {
 
   const WelcomeSection = (
     <section className="mx-auto mt-10 w-full max-w-5xl text-center px-6 pt-10 pb-20">
-      <h1 className="text-3xl md:text-4xl font-bold text-black">
-        ยินดีต้อนรับ
-      </h1>
+      <h1 className="text-3xl md:text-4xl font-bold text-black">ยินดีต้อนรับ</h1>
       <p className="mt-2 text-2xl md:text-[1.6rem] font-medium text-black">
-        ผู้ดูแลจาก{" "}
-        <span className="font-semibold">{facultyName}</span>
+        ผู้ดูแลจาก <span className="font-semibold">{facultyName}</span>
       </p>
     </section>
   );
@@ -76,18 +85,12 @@ export default function Staff_Home({ navigate, auth, data, requireLogin }) {
   // กิจกรรมของ staff
   const staffEvents = safeData.events || [];
 
-  // Header เรียก “เพิ่มกิจกรรม”
+  // Header เรียก “เพิ่มกิจกรรม” — ใช้ navigateAndJump + retry
   const handleAddActivityJump = () => {
-    if (typeof window === "undefined") return;
-
-    const el = document.getElementById("staff-add-event");
-    if (el) {
-      // อยู่หน้า /staff แล้ว -> เลื่อนลงแบบ smooth
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else {
-      // เผื่อถูกเรียกจากหน้าอื่น / reload แปลก ๆ
-      navigate("/staff#staff-add-event");
-    }
+    navigateAndJump(navigate, "/staff", "staff-add-event", {
+      offsetPx: FLAGS?.HEADER_HEIGHT_PX || 0,
+      highlightMs: 900,
+    });
   };
 
   return (
@@ -105,20 +108,12 @@ export default function Staff_Home({ navigate, auth, data, requireLogin }) {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
-              <svg
-                className="h-6 w-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              ออกจากระบบสำเร็จ
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900">ออกจากระบบสำเร็จ</h2>
             <p className="mt-2 text-sm text-gray-600">
               {logoutMessage || "ออกจากระบบเรียบร้อยแล้ว"}
             </p>
@@ -166,6 +161,7 @@ export default function Staff_Home({ navigate, auth, data, requireLogin }) {
               onOpenEvent={openEventDetail}
             />
 
+            {/* ตรงนี้ภายใน component มี <section id="staff-add-event" .../> อยู่แล้ว */}
             <StaffAddEventSection auth={auth} navigate={navigate} />
           </div>
         </main>
