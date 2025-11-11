@@ -19,37 +19,52 @@ function AgendaCard({ day }) {
   })();
 
   const highlight = Boolean(day.highlight);
-
   const hoverClass = clickable ? "hover:-translate-y-[2px] hover:shadow-lg" : "";
+
+  const dayLabelCls = highlight
+    ? "text-xs font-semibold uppercase tracking-[0.4em] text-black/60"
+    : "text-xs font-semibold uppercase tracking-[0.4em] text-gray-400";
+
+  const titleCls = highlight
+    ? "mt-2 text-lg font-semibold text-black"
+    : "mt-2 text-lg font-semibold text-gray-900";
+
+  const listCls = highlight
+    ? "mt-4 space-y-2 text-sm text-black"
+    : "mt-4 space-y-2 text-sm text-gray-700";
+
   return (
     <div
       className={`flex h-full flex-col rounded-[24px] border px-5 py-6 shadow-sm transition ${hoverClass} ${
-        highlight
-          ? "border-[#f0b429] bg-[#ffe082]"
-          : "border-black/10 bg-white"
+        highlight ? "border-[#f0b429] bg-[#ffe082]" : "border-black/10 bg-white"
       }`}
       style={clickable ? { cursor: "pointer" } : undefined}
       onClick={onOpen}
     >
-      <div className="text-xs font-semibold uppercase tracking-[0.4em] text-gray-400">
-        DAY
-      </div>
-      <h3 className="mt-2 text-lg font-semibold text-gray-900">{formatted || "ไม่มีกำหนด"}</h3>
+      <div className={dayLabelCls}>DAY</div>
+      <h3 className={titleCls}>{formatted || "ไม่มีกำหนด"}</h3>
 
-      <ul className="mt-4 space-y-2 text-sm text-gray-700">
+      <ul className={listCls}>
         {(day.items ?? []).map((item) => (
           <li key={item.id} className="flex items-start gap-2">
-            <span className="mt-1 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-500" />
+            <span
+              className={`mt-1 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full ${
+                highlight ? "bg-black/70" : "bg-gray-500"
+              }`}
+            />
             <span className="leading-snug">{item.title}</span>
           </li>
         ))}
         {(!day.items || day.items.length === 0) && (
-          <li className="text-gray-500">ยังไม่มีกิจกรรมที่บันทึกไว้</li>
+          <li className={highlight ? "text-black/70" : "text-gray-500"}>
+            ยังไม่มีกิจกรรมที่บันทึกไว้
+          </li>
         )}
       </ul>
     </div>
   );
 }
+
 
 export default function AgendaGrid({ days = [], forwardRef }) {
   return (

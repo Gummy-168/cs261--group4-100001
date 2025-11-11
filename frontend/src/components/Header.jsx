@@ -104,7 +104,7 @@ export default function Header({
         <nav className="flex items-center gap-6">
           {/* Search Button */}
           <button
-            className="p-1 hover:text-red-600 transition-colors"
+            className="p-1 text-black hover:text-red-600 transition-colors"
             aria-label="ค้นหากิจกรรม"
             onClick={() => (onSearch ? onSearch() : navigate("/search"))}
           >
@@ -116,7 +116,7 @@ export default function Header({
 
           {/* Activities Button */}
           <button
-            className="rounded-full px-4 py-2 text-sm font-semibold text-gray-900 transition hover:bg-black/10"
+            className="rounded-full px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/10"
             onClick={() => (onActivities ? onActivities() : navigate("/activities"))}
           >
             กิจกรรมอื่นๆ
@@ -125,7 +125,7 @@ export default function Header({
           {/* Calendar Button */}
           {onCalendarJump && (
             <button
-              className="rounded-full px-4 py-2 text-sm font-semibold text-gray-900 transition hover:bg-black/10"
+              className="rounded-full px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/10"
               onClick={onCalendarJump}
             >
               ปฏิทิน
@@ -135,7 +135,7 @@ export default function Header({
           {/* Notifications Bell */}
           <div className="relative" ref={bellRef}>
             <button
-              className="relative p-1 hover:text-red-600 transition-colors"
+              className="relative p-1 text-black hover:text-red-600 transition-colors"
               aria-label="แจ้งเตือน"
               onClick={() => {
                 if (!isLoggedIn) {
@@ -216,7 +216,7 @@ export default function Header({
           {isLoggedIn ? (
             <div className="relative" ref={profRef}>
               <button
-                className="flex items-center gap-2 rounded-full px-3 py-1.5 hover:bg-black/10 transition-colors"
+                className="flex items-center gap-2 rounded-full px-3 py-1.5 text-black hover:bg-black/10 transition-colors"
                 onClick={() => setOpenProfile(!openProfile)}
                 aria-label="โปรไฟล์"
               >
