@@ -1,5 +1,5 @@
-// src/Page/Staff_EventDetail.jsx (refactored + jump)
-import React, { useEffect, useMemo, useState } from "react";
+// src/Page/Staff_EventDetail.jsx
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import StaffHeader, { HeaderSpacer } from "../components/Staff_Header";
 import Footer from "../components/Footer";
 import { THEME, FLAGS } from "../theme";
@@ -34,6 +34,37 @@ function formatTime(iso) {
   }
 }
 
+// --- อัปโหลด: ค่าคงที่ + helpers ---------------------------
+// จำกัดขนาดไฟล์สูงสุด (ปรับได้ตามต้องการ)
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes)) return "";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0, n = bytes;
+  while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+  return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
+}
+
+// ตรวจชนิดไฟล์สเปรดชีต
+function isSpreadsheetFile(file) {
+  if (!file) return false;
+  const okExt = [".xlsx", ".xls", ".csv", ".ods"];
+  const lower = (file.name || "").toLowerCase();
+  const passExt = okExt.some((ext) => lower.endsWith(ext));
+
+  const okMime = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    "application/vnd.ms-excel",                                         // .xls
+    "text/csv",                                                          // .csv
+    "application/vnd.oasis.opendocument.spreadsheet",                    // .ods
+  ];
+  const passMime = okMime.includes(file.type);
+
+  // บางเบราว์เซอร์ type อาจว่าง -> ใช้นามสกุลช่วยตัดสิน
+  return passExt || passMime;
+}
+
 // Unified pill row (label + read-only value)
 function PillRow({ label, children }) {
   return (
@@ -53,6 +84,11 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
   const [error, setError] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  // ✅ สเตต/รีเฟอเรนซ์สำหรับการอัปโหลด
+  const [uploading, setUploading] = useState(false);
+  const [uploadInfo, setUploadInfo] = useState(null); // { name, size, serverRef? }
+  const fileInputRef = useRef(null);
+
   useEffect(() => { setError(null); }, [event?.id]);
 
   const onBack = () => {
@@ -66,6 +102,54 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
       offsetPx: FLAGS?.HEADER_HEIGHT_PX || 0,
       highlightMs: 900,
     });
+  };
+
+  // ✅ จัดการล้างไฟล์ที่เลือก
+  const handleClearUpload = () => {
+    setUploadInfo(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // ✅ อัปโหลดไฟล์: ตรวจชนิด + ขนาด + mock อัปโหลด
+  const handleUploadFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!isSpreadsheetFile(file)) {
+      setError("รองรับเฉพาะไฟล์ตาราง เช่น .xlsx, .xls, .csv, .ods เท่านั้น");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(`ขนาดไฟล์เกินกำหนด (สูงสุด ${formatBytes(MAX_UPLOAD_BYTES)}). ไฟล์ที่เลือกมีขนาด ${formatBytes(file.size)}`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setError(null);
+    setUploading(true);
+    try {
+      // -------- TODO: เชื่อม API อัปโหลดจริง ----------
+      // ตัวอย่าง mock: เก็บชื่อไฟล์และขนาดไว้แสดงผล
+      setUploadInfo({ name: file.name, size: file.size });
+
+      // ตัวอย่างอัปโหลดจริง:
+      // const form = new FormData();
+      // form.append("file", file);
+      // form.append("eventId", String(event.id));
+      // const res = await fetch("/api/upload-spreadsheet", { method: "POST", body: form });
+      // if (!res.ok) throw new Error("Upload failed");
+      // const json = await res.json();
+      // setUploadInfo({ name: file.name, size: file.size, serverRef: json?.refId });
+    } catch (err) {
+      console.error(err);
+      setError("อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setUploading(false);
+      // ล้างค่าเพื่อให้เลือกไฟล์เดิมซ้ำได้
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   if (!event) {
@@ -107,16 +191,13 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
   const readerHref = `/staff/events/${encodeURIComponent(event.id)}/reader`;
   const editHref = `/staff/events/${encodeURIComponent(event.id)}/edit`;
 
-  const handleDeleteClick = () => setDeleteOpen(true);
   const handleConfirmDelete = () => {
     // TODO: hook real API
     console.log("TODO: delete event id =", event.id);
     setError("ฟังก์ชันลบกิจกรรมยังไม่ถูกเชื่อมต่อกับระบบจริง");
     setDeleteOpen(false);
   };
-  const handleCancelDelete = () => setDeleteOpen(false);
 
-  // Data-driven display rows to reduce repetitive JSX
   const rows = [
     ["ประเภท", event.category || event.activityType || event.type || "-"],
     ["วันเริ่มกิจกรรม", <>{dateLabel || "-"}</>],
@@ -212,42 +293,107 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
                 )}
               </section>
 
-              {/* ปุ่มล่าง */}
-              <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
-                <a href={readerHref} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm border border-black/10 hover:bg-gray-100 transition">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-300">
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <circle cx="12" cy="12" r="4" />
-                      <path d="M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5z" />
-                    </svg>
-                  </span>
-                  มุมมองผู้อ่าน
-                </a>
+              {/* แถวปุ่มล่าง: ซ้าย=อัปโหลดไฟล์, ขว=ปุ่มเดิม */}
+              <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                {/* ซ้าย: ปุ่มอัปโหลดไฟล์ */}
+                <div className="flex items-center gap-3">
+                  <label
+                    htmlFor="upload-spreadsheet"
+                    className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-100 ${
+                      uploading ? "opacity-60 pointer-events-none" : ""
+                    }`}
+                    title={`อัปโหลดไฟล์ตาราง (สูงสุด ${formatBytes(MAX_UPLOAD_BYTES)})`}
+                  >
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-300">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M12 16V4" />
+                        <path d="M8 8l4-4 4 4" />
+                        <path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" />
+                      </svg>
+                    </span>
+                    {uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์รายชื่อผู้เข้าร่วม (Excel/CSV)"}
+                  </label>
 
-                <a href={editHref} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm border border-black/10 hover:bg-gray-100 transition">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-300">
-                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <path d="M4 20h4L20 8l-4-4L4 16v4z" />
-                    </svg>
-                  </span>
-                  แก้ไขกิจกรรม
-                </a>
+                  <input
+                    ref={fileInputRef}
+                    id="upload-spreadsheet"
+                    type="file"
+                    accept=".xlsx,.xls,.csv,.ods,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.oasis.opendocument.spreadsheet"
+                    className="hidden"
+                    onChange={handleUploadFile}
+                  />
 
-                <button type="button" onClick={() => setDeleteOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#e84c3d] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#d63a2b] transition">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <path d="M3 6h18" />
-                      <path d="M8 6v14h8V6" />
-                      <path d="M10 10v6M14 10v6" />
-                      <path d="M5 6l1-2h12l1 2" />
-                    </svg>
-                  </span>
-                  ลบกิจกรรม
-                </button>
+                  {/* ชื่อไฟล์ + ปุ่มลบตัวอักษรสีแดง */}
+                  {uploadInfo?.name && (
+                    <span className="text-xs text-gray-700 flex items-center gap-2">
+                      <span
+                        className="truncate max-w-[240px]"
+                        title={`${uploadInfo.name} • ${formatBytes(uploadInfo.size)}`}
+                      >
+                        เลือกไฟล์: {uploadInfo.name}
+                        <span className="text-gray-400"> ({formatBytes(uploadInfo.size)})</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleClearUpload}
+                        className="text-xs font-medium text-red-600 hover:text-red-700 underline underline-offset-2"
+                        title="ลบไฟล์ที่เลือก"
+                      >
+                        ลบ
+                      </button>
+                    </span>
+                  )}
+                </div>
+
+                {/* ขวา: ปุ่มเดิม */}
+                <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                  <a
+                    href={readerHref}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm border border-black/10 hover:bg-gray-100 transition"
+                  >
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-300">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+                        <circle cx="12" cy="12" r="4" />
+                        <path d="M3 12s3.5-5 9-5 9 5 9 5-3.5 5-9 5-9-5-9-5z" />
+                      </svg>
+                    </span>
+                    มุมมองผู้อ่าน
+                  </a>
+
+                  <a
+                    href={editHref}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm border border-black/10 hover:bg-gray-100 transition"
+                  >
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-300">
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6">
+                        <path d="M4 20h4L20 8l-4-4L4 16v4z" />
+                      </svg>
+                    </span>
+                    แก้ไขกิจกรรม
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeleteOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#e84c3d] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#d63a2b] transition"
+                  >
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M3 6h18" />
+                        <path d="M8 6v14h8V6" />
+                        <path d="M10 10v6M14 10v6" />
+                        <path d="M5 6l1-2h12l1 2" />
+                      </svg>
+                    </span>
+                    ลบกิจกรรม
+                  </button>
+                </div>
               </section>
 
               {error && (
-                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
               )}
             </div>
           </article>
@@ -264,7 +410,7 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
         confirmLabel="ยืนยัน"
         cancelLabel="ยกเลิก"
         onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
+        onCancel={() => setDeleteOpen(false)}
       />
     </div>
   );

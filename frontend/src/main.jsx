@@ -156,7 +156,7 @@ function useMockLogin(auth) {
 function App() {
   const { path, navigate } = usePath();
   const auth = useAuthStore();
-  //useMockLogin(auth); // comment this line in production
+  useMockLogin(auth); // comment this line in production
 
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [homeData, setHomeData] = useState(null);
