@@ -41,3 +41,4 @@ public class User {
 
     // ไม่เก็บ password เพราะใช้ TU API ตรวจสอบทุกครั้ง
 }
+

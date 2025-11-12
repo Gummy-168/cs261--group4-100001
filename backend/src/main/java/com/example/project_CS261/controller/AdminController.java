@@ -4,6 +4,7 @@ import com.example.project_CS261.dto.AdminLoginRequest;
 import com.example.project_CS261.dto.AdminLoginResponse;
 import com.example.project_CS261.model.Admin;
 import com.example.project_CS261.service.AdminService;
+import com.example.project_CS261.security.JwtService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +21,11 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final JwtService jwtService;
 
-    public AdminController(AdminService adminService) {
+    public AdminController(AdminService adminService, JwtService jwtService) {
         this.adminService = adminService;
+        this.jwtService = jwtService;
     }
 
     /**
@@ -35,9 +38,18 @@ public class AdminController {
             Admin admin = adminService.login(request.getEmail(), request.getPassword());
 
             if (admin != null) {
+                // Generate JWT token for admin
+                String token = jwtService.generateAdminToken(
+                    admin.getId(), 
+                    admin.getEmail(), 
+                    admin.getRole()
+                );
+                
                 AdminLoginResponse response = new AdminLoginResponse(
                         true,
                         "Login successful",
+                        token,  // Add JWT token
+                        admin.getId(),
                         admin.getEmail(),
                         admin.getDisplayName(),
                         admin.getRole(),

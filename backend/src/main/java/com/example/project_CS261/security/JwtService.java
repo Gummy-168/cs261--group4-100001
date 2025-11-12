@@ -30,7 +30,20 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
+        claims.put("type", "USER");
         return createToken(claims, username);
+    }
+
+    /**
+     * Generate token for admin
+     */
+    public String generateAdminToken(Long adminId, String email, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("adminId", adminId);
+        claims.put("email", email);
+        claims.put("role", role);
+        claims.put("type", "ADMIN");
+        return createToken(claims, email);
     }
 
     /**
@@ -119,5 +132,9 @@ public class JwtService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public boolean isTokenValid(String token) {
+        return false;
     }
 }

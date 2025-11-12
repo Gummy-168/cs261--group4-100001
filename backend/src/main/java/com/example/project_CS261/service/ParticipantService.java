@@ -143,4 +143,13 @@ public class ParticipantService {
         }
         participantRepository.deleteById(participantId);
     }
+
+    /**
+     * ดึงรายการ Events ที่ User ลงทะเบียนแล้ว
+     * @param username - username ของ user
+     * @return List of EventParticipant
+     */
+    public List<EventParticipant> getUserParticipations(String username) {
+        return participantRepository.findByUsername(username);
+    }
 }

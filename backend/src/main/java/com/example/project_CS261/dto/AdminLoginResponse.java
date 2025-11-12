@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 public class AdminLoginResponse {
     private boolean status;
     private String message;
+    private String token;  // JWT token
+    private Long adminId;
     private String email;
     private String displayName;
     private String role;

@@ -42,4 +42,8 @@ public class EventParticipant {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    public Object getStudentId() {
+        return null;
+    }
 }

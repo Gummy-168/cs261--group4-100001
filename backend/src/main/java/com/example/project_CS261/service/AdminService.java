@@ -127,8 +127,21 @@ public class AdminService {
 
         Admin admin = adminOpt.get();
 
-        // Check password
-        if (admin.getPassword() != null && passwordEncoder.matches(password, admin.getPassword())) {
+        // Check password - รองรับทั้ง plain text แลา BCrypt
+        boolean passwordMatch = false;
+        
+        if (admin.getPassword() != null) {
+            // ลอง plain text ก่อน
+            if (admin.getPassword().equals(password)) {
+                passwordMatch = true;
+            }
+            // ถ้าไม่ตรง ลอง BCrypt
+            else if (admin.getPassword().startsWith("$2a$") && passwordEncoder.matches(password, admin.getPassword())) {
+                passwordMatch = true;
+            }
+        }
+
+        if (passwordMatch) {
             admin.setLastLogin(LocalDateTime.now());
             adminRepository.save(admin);
             admin.clearPassword();

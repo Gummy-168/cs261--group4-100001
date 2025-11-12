@@ -80,6 +80,38 @@ public class AuthController {
     }
 
     /**
+     * Validate JWT token
+     */
+    @GetMapping("/validate")
+    public ResponseEntity<?> validateToken(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body(
+                    new LoginResponse(false, "No token provided")
+                );
+            }
+
+            String token = authHeader.substring(7);
+            
+            // Validate token
+            if (jwtService.isTokenValid(token)) {
+                String username = jwtService.extractUsername(token);
+                return ResponseEntity.ok().body(
+                    new LoginResponse(true, "Token is valid", token, null, username, null, null, null, null, false)
+                );
+            } else {
+                return ResponseEntity.status(401).body(
+                    new LoginResponse(false, "Invalid or expired token")
+                );
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(
+                new LoginResponse(false, "Token validation failed: " + e.getMessage())
+            );
+        }
+    }
+
+    /**
      * ฟังก์ชันดึง IP Address ของ Client
      */
     private String getClientIP(HttpServletRequest request) {
