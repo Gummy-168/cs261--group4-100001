@@ -1,86 +1,206 @@
-import { useCallback } from 'react';
-import { logout as logoutService, validateToken } from '../services/authService';
+import { useCallback, useMemo, useState } from "react";
 
 /**
- * Custom Hook สำหรับจัดการ Authentication
- * ใช้ร่วมกับ auth object จาก main.jsx
+ * Default preference shape for newly initialized users.
  */
-export function useAuth(auth) {
-  
-  /**
-   * Check if user is logged in
-   */
-  const isLoggedIn = useCallback(() => {
-    return auth?.loggedIn || false;
-  }, [auth]);
+export const DEFAULT_PREFERENCES = {
+  theme: "light",
+  notifications: { follow: true, near: true, recommend: true, announce: true },
+  privacy: { showFavorites: true },
+};
 
-  /**
-   * Get current user
-   */
-  const getUser = useCallback(() => {
-    return auth?.profile || null;
-  }, [auth]);
+const readStoredJson = (key, fallback) => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
-  /**
-   * Get user ID
-   */
-  const getUserId = useCallback(() => {
-    return auth?.userId || auth?.profile?.id || null;
-  }, [auth]);
+const mergeObjects = (base, patch) => {
+  if (!patch || typeof patch !== "object") return base;
+  const next = Array.isArray(base) ? [...base] : { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    next[key] =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? mergeObjects(next[key] ?? {}, value)
+        : value;
+  }
+  return next;
+};
 
-  /**
-   * Get auth token
-   */
-  const getToken = useCallback(() => {
-    return auth?.token || null;
-  }, [auth]);
+const hasAdminRole = (profile) => {
+  if (!profile) return false;
+  const roles = profile.roles ?? profile.role;
+  if (!roles) return false;
+  if (typeof roles === "string") return roles === "admin";
+  if (Array.isArray(roles)) return roles.includes("admin");
+  return false;
+};
 
-  /**
-   * Logout user
-   */
-  const logout = useCallback(() => {
-    logoutService(); // Clear localStorage/sessionStorage
-    if (auth?.logout) {
-      auth.logout();
-    }
-  }, [auth]);
-
-  /**
-   * Validate current token
-   */
-  const validateCurrentToken = useCallback(async () => {
+const persistAdminEmail = (profile) => {
+  if (typeof window === "undefined") return;
+  if (profile && hasAdminRole(profile) && profile.email) {
     try {
-      const result = await validateToken();
-      return result.valid;
-    } catch (error) {
-      console.error('Token validation failed:', error);
-      return false;
+      window.localStorage.setItem("adminEmail", profile.email.toLowerCase());
+    } catch {
+      // ignore
+    }
+  } else {
+    window.localStorage.removeItem("adminEmail");
+  }
+};
+
+/**
+ * Local auth store that mirrors the logic previously defined in main.jsx.
+ * Holds token/profile/userId/preferences and exposes helpers to mutate + persist them.
+ */
+export function useAuthStore() {
+  const [state, setState] = useState(() => {
+    const storedToken =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("authToken") ??
+          window.sessionStorage.getItem("authToken")
+        : null;
+    const storedUserId =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("userId")
+        : null;
+    const storedProfile = readStoredJson("profileDraft", null);
+    const storedPreferences = mergeObjects(
+      DEFAULT_PREFERENCES,
+      readStoredJson("userPreferences", DEFAULT_PREFERENCES)
+    );
+    return {
+      loggedIn: Boolean(storedToken),
+      token: storedToken,
+      profile: storedProfile,
+      userId: storedUserId ? parseInt(storedUserId, 10) : null,
+      preferences: storedPreferences,
+    };
+  });
+
+  const persistProfile = useCallback((profile) => {
+    if (typeof window === "undefined") return;
+    if (!profile) {
+      window.localStorage.removeItem("profileDraft");
+      return;
+    }
+    try {
+      window.localStorage.setItem("profileDraft", JSON.stringify(profile));
+    } catch {
+      // no-op
     }
   }, []);
 
-  /**
-   * Require login - redirect to login if not logged in
-   */
-  const requireLogin = useCallback((navigate) => {
-    if (!isLoggedIn()) {
-      console.warn('⚠️ User not logged in, redirecting to login');
-      navigate('/login');
-      return false;
+  const persistPreferences = useCallback((prefs) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem("userPreferences", JSON.stringify(prefs));
+    } catch {
+      // no-op
     }
-    return true;
-  }, [isLoggedIn]);
+  }, []);
 
-  return {
-    isLoggedIn,
-    getUser,
-    getUserId,
-    getToken,
-    logout,
-    validateCurrentToken,
-    requireLogin,
-    // Pass through original auth object
-    auth,
-  };
+  const login = useCallback(({ token, profile, remember = true, userId } = {}) => {
+    let resolvedProfile = profile;
+    setState((prev) => {
+      const nextProfile = resolvedProfile ?? prev.profile;
+      resolvedProfile = nextProfile;
+      if (nextProfile) {
+        try {
+          window.localStorage.setItem("profileDraft", JSON.stringify(nextProfile));
+        } catch {
+          // no-op
+        }
+      }
+      return {
+        ...prev,
+        loggedIn: true,
+        token: token ?? prev.token,
+        profile: nextProfile,
+        userId: userId ?? prev.userId,
+      };
+    });
+
+    if (token) {
+      if (remember) {
+        window.localStorage.setItem("authToken", token);
+        window.sessionStorage.removeItem("authToken");
+      } else {
+        window.sessionStorage.setItem("authToken", token);
+        window.localStorage.removeItem("authToken");
+      }
+    }
+
+    if (userId) {
+      window.localStorage.setItem("userId", userId.toString());
+    }
+
+    persistAdminEmail(resolvedProfile);
+  }, []);
+
+  const updateProfile = useCallback(
+    (updater) => {
+      setState((prev) => {
+        const base = prev.profile ?? {};
+        const next =
+          typeof updater === "function" ? updater(base) : { ...base, ...updater };
+        persistProfile(next);
+        persistAdminEmail(next);
+        return { ...prev, profile: next };
+      });
+    },
+    [persistProfile]
+  );
+
+  const updatePreferences = useCallback(
+    (updater) => {
+      setState((prev) => {
+        const base = mergeObjects(DEFAULT_PREFERENCES, prev.preferences ?? {});
+        const next =
+          typeof updater === "function"
+            ? updater(base)
+            : mergeObjects(base, updater);
+        persistPreferences(next);
+        return { ...prev, preferences: next };
+      });
+    },
+    [persistPreferences]
+  );
+
+  const logout = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("authToken");
+      window.sessionStorage.removeItem("authToken");
+      window.localStorage.removeItem("userId");
+      window.localStorage.removeItem("adminEmail");
+    }
+    persistProfile(null);
+    persistPreferences({ ...DEFAULT_PREFERENCES });
+    setState({
+      loggedIn: false,
+      token: null,
+      profile: null,
+      userId: null,
+      preferences: { ...DEFAULT_PREFERENCES },
+    });
+  }, [persistProfile, persistPreferences]);
+
+  return useMemo(
+    () => ({
+      ...state,
+      login,
+      logout,
+      updateProfile,
+      updatePreferences,
+    }),
+    [state, login, logout, updateProfile, updatePreferences]
+  );
 }
 
-export default useAuth;
+export const useAuth = useAuthStore;
+
+export default useAuthStore;

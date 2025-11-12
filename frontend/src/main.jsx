@@ -1,10 +1,11 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
 
 // lib
 import { usePath } from "./lib/router";
+import { useAuthStore } from "./hooks/useAuth";
 import { fetchHomeData } from "./lib/api";
 import { isStaff } from "./lib/authz"; // ✅ เพิ่ม import
 
@@ -16,6 +17,7 @@ import ActivitiesPage from "./Page/Activities";
 import MyActivitiesPage from "./Page/MyActivities";
 import SettingsPage from "./Page/Settings";
 import EventDetailPage from "./Page/EventDetail";
+import AdminLogin from "./Page/Admin_Login";
 
 // staff pages
 import StaffHome from "./Page/Staff_Home";
@@ -35,109 +37,6 @@ import StaffRequire from "./components/Staff_Require";
 // theme
 import ThemeProvider from "./ThemeProvider.jsx";
 
-// -------------------- constants & utils --------------------
-const DEFAULT_PREFERENCES = {
-  theme: "light",
-  notifications: { follow: true, near: true, recommend: true, announce: true },
-  privacy: { showFavorites: true },
-};
-
-const readStoredJson = (key, fallback) => {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const mergeObjects = (base, patch) => {
-  if (!patch || typeof patch !== "object") return base;
-  const next = Array.isArray(base) ? [...base] : { ...base };
-  for (const [k, v] of Object.entries(patch)) {
-    next[k] = v && typeof v === "object" && !Array.isArray(v)
-      ? mergeObjects(next[k] ?? {}, v)
-      : v;
-  }
-  return next;
-};
-
-// -------------------- auth store (local) --------------------
-function useAuthStore() {
-  const [state, setState] = useState(() => {
-    const storedToken = typeof window !== "undefined"
-      ? localStorage.getItem("authToken") ?? sessionStorage.getItem("authToken")
-      : null;
-    const storedUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-    const storedProfile = readStoredJson("profileDraft", null);
-    const storedPreferences = mergeObjects(
-      DEFAULT_PREFERENCES,
-      readStoredJson("userPreferences", DEFAULT_PREFERENCES)
-    );
-    return {
-      loggedIn: Boolean(storedToken),
-      token: storedToken,
-      profile: storedProfile,
-      userId: storedUserId ? parseInt(storedUserId) : null,
-      preferences: storedPreferences,
-    };
-  });
-
-  const persistProfile = useCallback((profile) => {
-    if (typeof window === "undefined") return;
-    if (!profile) return localStorage.removeItem("profileDraft");
-    try { localStorage.setItem("profileDraft", JSON.stringify(profile)); } catch {}
-  }, []);
-
-  const persistPreferences = useCallback((prefs) => {
-    if (typeof window === "undefined") return;
-    try { localStorage.setItem("userPreferences", JSON.stringify(prefs)); } catch {}
-  }, []);
-
-  const login = useCallback(({ token, profile, remember = true, userId } = {}) => {
-    setState((prev) => {
-      const nextProfile = profile ?? prev.profile;
-      if (nextProfile) { try { localStorage.setItem("profileDraft", JSON.stringify(nextProfile)); } catch {} }
-      return { ...prev, loggedIn: true, token: token ?? prev.token, profile: nextProfile, userId: userId ?? prev.userId };
-    });
-    if (token) {
-      if (remember) { localStorage.setItem("authToken", token); sessionStorage.removeItem("authToken"); }
-      else { sessionStorage.setItem("authToken", token); localStorage.removeItem("authToken"); }
-    }
-    if (userId) { localStorage.setItem("userId", userId.toString()); }
-  }, []);
-
-  const updateProfile = useCallback((updater) => {
-    setState((prev) => {
-      const base = prev.profile ?? {};
-      const next = typeof updater === "function" ? updater(base) : { ...base, ...updater };
-      persistProfile(next);
-      return { ...prev, profile: next };
-    });
-  }, [persistProfile]);
-
-  const updatePreferences = useCallback((updater) => {
-    setState((prev) => {
-      const base = mergeObjects(DEFAULT_PREFERENCES, prev.preferences ?? {});
-      const next = typeof updater === "function" ? updater(base) : mergeObjects(base, updater);
-      persistPreferences(next);
-      return { ...prev, preferences: next };
-    });
-  }, [persistPreferences]);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem("authToken");
-    sessionStorage.removeItem("authToken");
-    localStorage.removeItem("userId");
-    persistProfile(null);
-    persistPreferences({ ...DEFAULT_PREFERENCES });
-    setState({ loggedIn: false, token: null, profile: null, userId: null, preferences: { ...DEFAULT_PREFERENCES } });
-  }, [persistProfile, persistPreferences]);
-
-  return useMemo(() => ({ ...state, login, logout, updateProfile, updatePreferences }), [state, login, logout, updateProfile, updatePreferences]);
-}
-
 // (optional) mock login for local testing
 function useMockLogin(auth) {
   useEffect(() => {
@@ -156,7 +55,8 @@ function useMockLogin(auth) {
 function App() {
   const { path, navigate } = usePath();
   const auth = useAuthStore();
-  useMockLogin(auth); // comment this line in production
+  const forceStaffHome = import.meta.env.VITE_FORCE_STAFF_HOME === "true";
+  // useMockLogin(auth); // comment this line in production
 
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [homeData, setHomeData] = useState(null);
@@ -191,10 +91,11 @@ function App() {
 
   // ✅ บังคับให้ผู้ใช้ที่เป็น staff อยู่ใน /staff เสมอ (กันไปฝั่ง user)
   useEffect(() => {
+    if (!forceStaffHome) return;
     if (auth?.loggedIn && isStaff(auth) && !path.startsWith("/staff")) {
       navigate("/staff");
     }
-  }, [auth?.loggedIn, auth?.profile, auth?.token, path, navigate]);
+  }, [auth?.loggedIn, auth?.profile, auth?.token, path, navigate, forceStaffHome]);
 
   if (loading) {
     return (
@@ -204,13 +105,18 @@ function App() {
     );
   }
 
-  const requireLogin = () => setLoginPromptOpen(true);
+  const requirePublicLogin = () => setLoginPromptOpen(true);
+  const requireAdminLogin = () => {
+    if (!path.startsWith("/admin/login")) {
+      navigate("/admin/login");
+    }
+  };
   const closePrompt = () => setLoginPromptOpen(false);
   const goToLogin = () => { setLoginPromptOpen(false); navigate("/login"); };
 
   // helpers for routing
   const guard = (el) => (
-    <StaffRequire auth={auth} requireLogin={requireLogin} navigate={navigate}>
+    <StaffRequire auth={auth} requireLogin={requireAdminLogin} navigate={navigate}>
       {el}
     </StaffRequire>
   );
@@ -220,38 +126,41 @@ function App() {
   const renderStaffRoutes = () => {
     if (path.startsWith("/staff/events/") && path.endsWith("/reader")) {
       const eventId = extractId("/staff/events/", "/reader");
-      return guard(<StaffEventReaderPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requireLogin} />);
+      return guard(<StaffEventReaderPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requireAdminLogin} />);
     }
     if (path.startsWith("/staff/events/") && path.endsWith("/edit")) {
       const eventId = extractId("/staff/events/", "/edit");
-      return guard(<StaffEditEventPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requireLogin} />);
+      return guard(<StaffEditEventPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requireAdminLogin} />);
     }
     if (path.startsWith("/staff/events/")) {
       const eventId = extractId("/staff/events/");
-      return guard(<StaffEventDetailPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requireLogin} />);
+      return guard(<StaffEventDetailPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requireAdminLogin} />);
     }
     if (path.startsWith("/staff/myActivities")) {
-      return guard(<StaffMyActivitiesPage navigate={navigate} auth={auth} data={homeData} requireLogin={requireLogin} />);
+      return guard(<StaffMyActivitiesPage navigate={navigate} auth={auth} data={homeData} requireLogin={requireAdminLogin} />);
     }
     if (path.startsWith("/staff")) {
-      return guard(<StaffHome navigate={navigate} auth={auth} data={homeData} requireLogin={requireLogin} />);
+      return guard(<StaffHome navigate={navigate} auth={auth} data={homeData} requireLogin={requireAdminLogin} />);
     }
     return null;
   };
 
   const renderPublicRoutes = () => {
+    if (path.startsWith("/admin/login")) {
+      return <AdminLogin navigate={navigate} auth={auth} />;
+    }
     if (path.startsWith("/notifications")) {
-      return <NotificationsPage navigate={navigate} auth={auth} notifications={homeData?.notifications || []} requireLogin={requireLogin} />;
+      return <NotificationsPage navigate={navigate} auth={auth} notifications={homeData?.notifications || []} requireLogin={requirePublicLogin} />;
     }
     if (path.startsWith("/my-activities")) {
-      return <MyActivitiesPage navigate={navigate} auth={auth} data={homeData} requireLogin={requireLogin} />;
+      return <MyActivitiesPage navigate={navigate} auth={auth} data={homeData} requireLogin={requirePublicLogin} />;
     }
     if (path.startsWith("/activities")) {
-      return <ActivitiesPage navigate={navigate} auth={auth} data={homeData} requireLogin={requireLogin} />;
+      return <ActivitiesPage navigate={navigate} auth={auth} data={homeData} requireLogin={requirePublicLogin} />;
     }
     if (path.startsWith("/events/")) {
       const eventId = extractId("/events/");
-      return <EventDetailPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requireLogin} />;
+      return <EventDetailPage navigate={navigate} auth={auth} data={homeData} eventId={eventId} requireLogin={requirePublicLogin} />;
     }
     if (path.startsWith("/settings")) {
       return <SettingsPage navigate={navigate} auth={auth} />;
@@ -259,7 +168,7 @@ function App() {
     if (path.startsWith("/login")) {
       return <Login navigate={navigate} auth={auth} data={homeData} />;
     }
-    return <Home navigate={navigate} auth={auth} data={homeData} requireLogin={requireLogin} />;
+    return <Home navigate={navigate} auth={auth} data={homeData} requireLogin={requirePublicLogin} />;
   };
 
   const page = renderStaffRoutes() ?? renderPublicRoutes();

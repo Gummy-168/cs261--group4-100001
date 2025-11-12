@@ -257,6 +257,17 @@ export default function Login({ navigate, auth }) {
           <p className="mt-6 text-sm text-gray-600 text-center">
             ใช้บัญชี TU Account ของคุณในการเข้าสู่ระบบ
           </p>
+          <p className="mt-2 text-sm text-center text-gray-500">
+            เป็นผู้ดูแลระบบ?{" "}
+            <button
+              type="button"
+              className="font-semibold text-red-600 hover:text-red-700"
+              onClick={() => navigate("/admin/login")}
+              disabled={loading}
+            >
+              ไปที่หน้า Admin Login
+            </button>
+          </p>
         </div>
       </div>
       </div>

@@ -8,21 +8,27 @@ export function decodeJwt(token) {
   }
 }
 
-export function isStaff(auth) {
+const hasRole = (auth, role) => {
   if (!auth) return false;
 
-  // 1) ฟิลด์ตรง ๆ
-  if (auth.role === "staff") return true;
+  if (auth.role === role) return true;
 
-  // 2) roles ใน profile
-  const roles = auth?.profile?.roles || auth?.roles;
-  if (Array.isArray(roles) && roles.includes("staff")) return true;
+  const roles = auth?.profile?.roles ?? auth?.roles;
+  if (typeof roles === "string" && roles === role) return true;
+  if (Array.isArray(roles) && roles.includes(role)) return true;
 
-  // 3) JWT claim
   const claims = auth?.token ? decodeJwt(auth.token) : null;
-  const claimRoles = claims?.roles || claims?.role;
-  if (Array.isArray(claimRoles) && claimRoles.includes("staff")) return true;
-  if (typeof claimRoles === "string" && claimRoles === "staff") return true;
+  const claimRoles = claims?.roles ?? claims?.role;
+  if (typeof claimRoles === "string" && claimRoles === role) return true;
+  if (Array.isArray(claimRoles) && claimRoles.includes(role)) return true;
 
   return false;
+};
+
+export function isStaff(auth) {
+  return hasRole(auth, "staff") || hasRole(auth, "admin");
+}
+
+export function isAdmin(auth) {
+  return hasRole(auth, "admin");
 }

@@ -14,11 +14,17 @@ const axiosInstance = axios.create({
 // Request interceptor - Add JWT token to requests
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or sessionStorage
-    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    // Check if admin token exists (for admin routes)
+    const adminToken = localStorage.getItem('adminToken');
     
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Otherwise use regular user token
+    const userToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    
+    // Prioritize admin token for /admin routes
+    if (config.url.includes('/admin') && adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (userToken) {
+      config.headers.Authorization = `Bearer ${userToken}`;
     }
     
     return config;

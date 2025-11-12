@@ -7,7 +7,7 @@ export default function StaffRequire({ auth, requireLogin, navigate, children })
 
   useEffect(() => {
     if (!auth?.loggedIn) {
-      requireLogin?.();   // เปิด modal ให้ล็อกอิน
+      requireLogin?.();   // เปิดหน้าเข้าสู่ระบบผู้ดูแลระบบ
       setAllowed(false);
       return;
     }
@@ -29,7 +29,7 @@ export default function StaffRequire({ auth, requireLogin, navigate, children })
       <div className="p-10 text-center">
         <h2 className="text-lg font-semibold">ไม่มีสิทธิ์เข้าถึง</h2>
         <p className="text-sm text-gray-600 mt-2">
-          หน้านี้สำหรับเจ้าหน้าที่ (Staff) เท่านั้น
+          หน้านี้สำหรับผู้ดูแลระบบ (Admin) เท่านั้น
         </p>
       </div>
     );

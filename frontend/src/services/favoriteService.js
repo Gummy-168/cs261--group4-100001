@@ -2,14 +2,12 @@ import axiosInstance from '../lib/axiosInstance';
 
 /**
  * เพิ่ม Event ลง Favorites
- * @param {number} userId - ID ของผู้ใช้
  * @param {number} eventId - ID ของกิจกรรม
  * @returns {Promise<Object>}
  */
-export const addFavorite = async (userId, eventId) => {
+export const addFavorite = async (eventId) => {
   try {
     const response = await axiosInstance.post('/favorites', {
-      userId,
       eventId: eventId
     });
     return response.data;
@@ -21,18 +19,12 @@ export const addFavorite = async (userId, eventId) => {
 
 /**
  * ลบ Event ออกจาก Favorites
- * @param {number} userId - ID ของผู้ใช้
  * @param {number} eventId - ID ของกิจกรรม
  * @returns {Promise<void>}
  */
-export const removeFavorite = async (userId, eventId) => {
+export const removeFavorite = async (eventId) => {
   try {
-    await axiosInstance.delete('/favorites', {
-      data: {
-        userId,
-        eventId: eventId
-      }
-    });
+    await axiosInstance.delete(`/favorites/${eventId}`);
   } catch (error) {
     console.error('Error removing favorite:', error);
     throw new Error(error.message || 'ไม่สามารถลบกิจกรรมออกจากรายการโปรดได้');
@@ -40,13 +32,12 @@ export const removeFavorite = async (userId, eventId) => {
 };
 
 /**
- * ดึงรายการ Favorites ของ User
- * @param {number} userId - ID ของผู้ใช้
+ * ดึงรายการ Favorites ของ User ที่ login อยู่
  * @returns {Promise<Array>}
  */
-export const getFavoritesByUser = async (userId) => {
+export const getFavoritesByUser = async () => {
   try {
-    const response = await axiosInstance.get(`/favorites/${userId}`);
+    const response = await axiosInstance.get('/favorites/user');
     return response.data;
   } catch (error) {
     console.error('Error fetching favorites:', error);
@@ -55,18 +46,47 @@ export const getFavoritesByUser = async (userId) => {
 };
 
 /**
+ * ตรวจสอบว่า event ถูก favorite หรือยัง
+ * @param {number} eventId - ID ของกิจกรรม
+ * @returns {Promise<boolean>}
+ */
+export const checkIsFavorited = async (eventId) => {
+  try {
+    const response = await axiosInstance.get(`/favorites/check/${eventId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking favorite status:', error);
+    return false;
+  }
+};
+
+/**
+ * ดึงจำนวน favorites ของ event
+ * @param {number} eventId - ID ของกิจกรรม
+ * @returns {Promise<number>}
+ */
+export const getFavoriteCount = async (eventId) => {
+  try {
+    const response = await axiosInstance.get(`/favorites/event/${eventId}/count`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching favorite count:', error);
+    return 0;
+  }
+};
+
+/**
  * Toggle Favorite (เพิ่มหรือลบ)
- * @param {number} userId
  * @param {number} eventId
  * @param {boolean} isFavorited - สถานะปัจจุบัน
  * @returns {Promise<Object|void>}
  */
-export const toggleFavorite = async (userId, eventId, isFavorited) => {
+export const toggleFavorite = async (eventId, isFavorited) => {
   if (isFavorited) {
     // ถ้า favorite อยู่แล้ว ให้ลบออก
-    return await removeFavorite(userId, eventId);
+    return await removeFavorite(eventId);
   } else {
     // ถ้ายังไม่ favorite ให้เพิ่ม
-    return await addFavorite(userId, eventId);
+    return await addFavorite(eventId);
   }
 };
