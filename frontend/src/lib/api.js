@@ -1,5 +1,5 @@
 ﻿import axiosInstance, { API_BASE_URL } from './axiosInstance';
-import { getAllEventCards, getEventCardsForUser } from '../services/eventService';
+import { getAllEventCards, getEventCardsForUser, getAllEventCardsForAdmin } from '../services/eventService';
 import { addFavorite, removeFavorite } from '../services/favoriteService';
 import Show from "../assets/img/Show.png";
 import Welcome from "../assets/img/Welcom.png";
@@ -80,6 +80,7 @@ function transformEventToFrontend(event) {
     fee: event.fee,
     isFull: event.isFull,
     availableSeats: event.availableSeats,
+    isPublic: event.isPublic,
   };
 }
 
@@ -88,10 +89,6 @@ function transformEventToFrontend(event) {
  * @param {string} token - Auth token (optional) - ไม่จำเป็นแล้วเพราะ axiosInstance จัดการให้
  * @param {number} userId - User ID สำหรับเช็ค favorites (optional)
  */
-
-
-
-
 export async function fetchHomeData(token, userId = null) {
   try {
     let events = [];
@@ -133,12 +130,41 @@ export async function fetchHomeData(token, userId = null) {
       agendaDays: mockHome.agendaDays,
       notifications: mockHome.notifications,
     };
+  }
 }
 
+/**
+ * ดึงข้อมูลหน้า Home สำหรับ Staff (รวม Draft events)
+ * @param {string} token - Auth token  
+ * @param {number} userId - User ID
+ */
+export async function fetchHomeDataForStaff(token, userId = null) {
+  try {
+    console.log('📦 Fetching home data for staff...');
+    
+    const eventsData = await getAllEventCardsForAdmin();
+    const events = eventsData.map(transformEventToFrontend);
+    
+    console.log('✅ Staff events loaded (including drafts):', events.length);
+    
+    return {
+      hero: mockHome.hero,
+      events: events,
+      favoriteEvents: [],
+      agendaDays: mockHome.agendaDays,
+      notifications: mockHome.notifications,
+    };
+  } catch (error) {
+    console.error("[fetchHomeDataForStaff] Error:", error);
+    return {
+      hero: mockHome.hero,
+      events: [],
+      favoriteEvents: [],
+      agendaDays: mockHome.agendaDays,
+      notifications: mockHome.notifications,
+    };
+  }
 }
-
-
-
 
 /**
  * Toggle Favorite Event
@@ -193,4 +219,3 @@ export async function signInMock() {
   console.warn('⚠️ signInMock is deprecated. Use authService.login() instead.');
   return { ok: true, user: { name: "Demo User" } };
 }
-

@@ -2,6 +2,8 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { FaUser, FaBell, FaPalette, FaPhone } from "react-icons/fa";
+import { isAdmin } from "../lib/authz";
+import { applyThemePreference } from "../lib/theme";
 
 const MENU = [
   { id: "profile", label: "แก้ไขโปรไฟล์", icon: <FaUser /> },
@@ -62,6 +64,7 @@ export default function SettingsPage({ navigate, auth }) {
 function ProfileSection({ auth }) {
   const saved = auth.profile ?? {};
   const [edit, setEdit] = useState(false);
+  const adminLocked = isAdmin(auth);
   const [draft, setDraft] = useState({
     displaynameTh: saved.displaynameTh ?? "",
     studentId: saved.studentId ?? "xxxx xxxxxxxx",
@@ -79,6 +82,12 @@ function ProfileSection({ auth }) {
     });
     setAvatarSaved(saved.avatarUrl || "");
   }, [saved.displaynameTh, saved.studentId, saved.email, saved.avatarUrl]);
+  useEffect(() => {
+    if (adminLocked) {
+      setEdit(false);
+      setAvatarPreview("");
+    }
+  }, [adminLocked]);
 
   const shownAvatar = useMemo(() => {
     if (edit && avatarPreview) return avatarPreview;
@@ -124,6 +133,12 @@ function ProfileSection({ auth }) {
     <section>
       <h1 className="text-xl font-semibold mb-6">บัญชีของคุณ</h1>
 
+      {adminLocked && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          บัญชีผู้ดูแลระบบถูกล็อก ไม่อนุญาตให้แก้ไขข้อมูลจากหน้านี้
+        </div>
+      )}
+
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 md:col-span-5">
           <div className="flex items-center gap-4">
@@ -149,16 +164,18 @@ function ProfileSection({ auth }) {
         </div>
 
         <div className="col-span-12 md:col-span-7 flex md:justify-end">
-          {!edit && (
-          <button
-            onClick={() => setEdit(true)}
-            className="px-8 py-2 rounded-full bg-white border border-gray-300 hover:bg-gray-100"
-          >
-            แก้ไขข้อมูล
-          </button>
-
-
-
+          {!adminLocked && !edit && (
+            <button
+              onClick={() => setEdit(true)}
+              className="px-8 py-2 rounded-full bg-white border border-gray-300 hover:bg-gray-100"
+            >
+              แก้ไขข้อมูล
+            </button>
+          )}
+          {adminLocked && (
+            <span className="text-sm text-gray-500">
+              ผู้ดูแลระบบไม่สามารถแก้ไขจากหน้านี้
+            </span>
           )}
         </div>
 
@@ -241,15 +258,17 @@ function Field({ label, value, onChange, readOnly, placeholder }) {
 }
 
 function NotificationsSection({ auth }) {
-  const pref = auth.preferences?.notifications ?? {
+  const defaults = {
     follow: false,
     near: false,
     recommend: false,
     announce: false,
+    uploadReminder: false,
   };
+  const pref = { ...defaults, ...(auth.preferences?.notifications ?? {}) };
   const [toggles, setToggles] = useState(pref);
   useEffect(() => {
-    setToggles(pref);
+    setToggles({ ...defaults, ...(auth.preferences?.notifications ?? {}) });
   }, [auth.preferences?.notifications]);
 
   const toggle = (key) => {
@@ -258,16 +277,23 @@ function NotificationsSection({ auth }) {
     auth.updatePreferences((p) => ({ ...p, notifications: next }));
   };
 
+  const options = isAdmin(auth)
+    ? [
+        ["uploadReminder", "แจ้งหลังจบกิจกรรมเพื่ออัปโหลดรายชื่อผู้เข้าร่วม"],
+        ["announce", "ประกาศจาก MeetMeet"],
+      ]
+    : [
+        ["follow", "เมื่อมีการแก้ไขกิจกรรมที่ติดตามอยู่"],
+        ["near", "เมื่อกิจกรรมที่ติดตามใกล้มาถึง"],
+        ["recommend", "กิจกรรมแนะนำ"],
+        ["announce", "ประกาศจาก MeetMeet"],
+      ];
+
   return (
     <section>
       <h1 className="text-xl font-semibold mb-6">การแจ้งเตือน</h1>
       <div className="max-w-[560px] space-y-5">
-        {[
-          ["follow", "เมื่อมีการแก้ไขกิจกรรมที่ติดตามอยู่"],
-          ["near", "เมื่อกิจกรรมที่ติดตามใกล้มาถึง"],
-          ["recommend", "กิจกรรมแนะนำ"],
-          ["announce", "ประกาศจาก MeetMeet"],
-        ].map(([key, label]) => (
+        {options.map(([key, label]) => (
           <div key={key} className="flex items-center justify-between">
             <span className="text-sm">{label}</span>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -288,19 +314,20 @@ function NotificationsSection({ auth }) {
 }
 
 function ThemeSection({ auth }) {
-  const current = auth.preferences?.theme ?? "system";
+  const current = auth.preferences?.theme ?? "light";
   const [theme, setTheme] = useState(current);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setTheme(current);
   }, [current]);
 
-  const apply = (val) => {
-    setTheme(val);
-    auth.updatePreferences((p) => ({ ...p, theme: val }));
-    if (typeof document !== "undefined") {
-      document.documentElement.dataset.themePreference = val;
-    }
+  const saveTheme = () => {
+    if (theme === current) return;
+    setSaving(true);
+    auth.updatePreferences((p) => ({ ...p, theme }));
+    applyThemePreference(theme);
+    setSaving(false);
   };
 
   const options = [
@@ -321,7 +348,7 @@ function ThemeSection({ auth }) {
           {options.map((opt) => (
             <button
               key={opt.id}
-              onClick={() => apply(opt.id)}
+              onClick={() => setTheme(opt.id)}
               className={`relative w-[74px] h-[74px] rounded-md border-2 transition ${
                 theme === opt.id ? "border-red-500" : "border-gray-300 hover:border-gray-400"
               }`}
@@ -337,6 +364,23 @@ function ThemeSection({ auth }) {
               </span>
             </button>
           ))}
+        </div>
+
+        <div className="mt-10 flex gap-3">
+          <button
+            onClick={saveTheme}
+            disabled={theme === current || saving}
+            className="px-6 py-2 rounded-full bg-red-500 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "กำลังบันทึก..." : "บันทึกธีม"}
+          </button>
+          <button
+            onClick={() => setTheme(current)}
+            disabled={theme === current || saving}
+            className="px-6 py-2 rounded-full border border-gray-300 text-sm font-semibold text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ยกเลิก
+          </button>
         </div>
       </div>
     </section>

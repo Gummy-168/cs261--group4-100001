@@ -15,6 +15,30 @@ export const getAllEventCards = async () => {
 };
 
 /**
+ * ดึงข้อมูล Events ทั้งหมดในรูปแบบ Card (สำหรับ Admin/Staff)
+ * @returns {Promise<Array>} รายการ Events ทั้งหมด รวม Draft
+ */
+export const getAllEventCardsForAdmin = async () => {
+  try {
+    const adminEmail = localStorage.getItem('adminEmail');
+    
+    if (!adminEmail) {
+      throw new Error('ไม่พบข้อมูล Admin กรุณา Login ใหม่');
+    }
+    
+    const response = await axiosInstance.get('/events/cards/admin', {
+      headers: {
+        'X-Admin-Email': adminEmail
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching event cards for admin:', error);
+    throw new Error(error.message || 'ไม่สามารถโหลดข้อมูลกิจกรรมได้');
+  }
+};
+
+/**
  * ดึงข้อมูล Events พร้อมสถานะ Favorite สำหรับ User
  * @param {number} userId - ID ของผู้ใช้
  * @returns {Promise<Array>} รายการ Events พร้อม isFavorited
@@ -65,11 +89,21 @@ export const getEventById = async (eventId) => {
  */
 export const createEvent = async (eventData) => {
   try {
-    const response = await axiosInstance.post('/events', eventData);
+    const adminEmail = localStorage.getItem('adminEmail');
+    
+    if (!adminEmail) {
+      throw new Error('ไม่พบข้อมูล Admin กรุณา Login ใหม่');
+    }
+    
+    const response = await axiosInstance.post('/events', eventData, {
+      headers: {
+        'X-Admin-Email': adminEmail
+      }
+    });
     return response.data;
   } catch (error) {
     console.error('Error creating event:', error);
-    throw new Error(error.message || 'ไม่สามารถสร้างกิจกรรมได้');
+    throw new Error(error.response?.data?.error || error.message || 'ไม่สามารถสร้างกิจกรรมได้');
   }
 };
 
@@ -81,22 +115,38 @@ export const createEvent = async (eventData) => {
  */
 export const updateEvent = async (eventId, eventData) => {
   try {
-    const response = await axiosInstance.put(`/events/${eventId}`, eventData);
+    const adminEmail = localStorage.getItem('adminEmail');
+    
+    if (!adminEmail) {
+      throw new Error('ไม่พบข้อมูล Admin กรุณา Login ใหม่');
+    }
+    
+    const response = await axiosInstance.put(`/events/${eventId}`, eventData, {
+      headers: {
+        'X-Admin-Email': adminEmail
+      }
+    });
     return response.data;
   } catch (error) {
     console.error(`Error updating event ${eventId}:`, error);
-    throw new Error(error.message || 'ไม่สามารถอัปเดตกิจกรรมได้');
+    throw new Error(error.response?.data?.error || error.message || 'ไม่สามารถอัปเดตกิจกรรมได้');
   }
 };
 
 /**
- * ลบ Event
+ * ลบ Event (Admin)
  * @param {number} eventId
  * @returns {Promise<void>}
  */
 export const deleteEvent = async (eventId) => {
   try {
-    await axiosInstance.delete(`/events/${eventId}`);
+    const adminEmail = localStorage.getItem('adminEmail');
+    
+    await axiosInstance.delete(`/events/${eventId}`, {
+      headers: {
+        'X-Admin-Email': adminEmail
+      }
+    });
   } catch (error) {
     console.error(`Error deleting event ${eventId}:`, error);
     throw new Error(error.message || 'ไม่สามารถลบกิจกรรมได้');

@@ -1,10 +1,12 @@
 // src/Page/Staff_EditEvent.jsx (refactored + jump)
 import React, { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import StaffHeader, { HeaderSpacer } from "../components/Staff_Header";
 import Footer from "../components/Footer";
 import { THEME, FLAGS } from "../theme";
 import StaffConfirmPopup from "../components/Staff_ConfirmPopup";
 import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
+import { updateEvent } from "../services/eventService";
 
 // --- helpers -------------------------------------------------
 
@@ -156,11 +158,14 @@ export default function StaffEditEventPage({ navigate, auth, data, eventId, requ
     contact: event.contact || event.contactInfo || event.phone || event.email || "",
     description: event.description || "",
     website: event.website || event.registerLink || "",
+    isPublic: event.isPublic || false,
   });
 
   // รูปภาพ
   const [previewImage, setPreviewImage] = useState(event.coverUrl || null);
   const [imageFile, setImageFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   const set = (name) => (e) => setForm((f) => ({ ...f, [name]: e.target.value }));
 
@@ -181,30 +186,54 @@ export default function StaffEditEventPage({ navigate, auth, data, eventId, requ
     setPreviewImage(null);
   };
 
-  // --- submit (now logs payload) -----------------------------
-  const doSave = () => {
+  // --- submit (call backend) -----------------------------
+  const doSave = async () => {
+    if (!event?.id || saving) return;
+
+    const capacityTrim = form.capacity.trim();
+    const capacityNumber =
+      capacityTrim === "" ? null : Number.isNaN(Number(capacityTrim)) ? null : Number(capacityTrim);
+
     const payload = {
-      ...event,
       title: form.title.trim(),
       category: form.category.trim(),
       startTime: buildStartISO(startISO, form.date, form.time),
-      maxCapacity: form.capacity.trim() === "" ? null : Number(form.capacity.trim()),
+      maxCapacity: capacityNumber,
       location: form.location.trim(),
       contact: form.contact.trim(),
       description: form.description.trim(),
       website: form.website.trim(),
-      coverPreview: previewImage,
-      // TODO: ส่ง imageFile จริงไปที่ API ถ้าเชื่อม backend แล้ว
+      isPublic: Boolean(form.isPublic),
     };
-    console.log("📌 payload สำหรับส่งแก้ไขกิจกรรม:", payload);
-    // TODO: เรียก API จริง แล้วค่อย navigate กลับ / แสดง toast สำเร็จ
+
+    if (previewImage && imageFile && previewImage.startsWith("data:")) {
+      payload.coverBase64 = previewImage;
+      payload.coverMime = imageFile.type;
+    } else if (!previewImage) {
+      payload.coverUrl = null;
+    }
+
+    try {
+      setSaving(true);
+      setSaveError("");
+      await updateEvent(event.id, payload);
+      toast.success("บันทึกกิจกรรมเรียบร้อยแล้ว");
+      navigate("/staff/myActivities");
+    } catch (error) {
+      const message = error?.message || "ไม่สามารถบันทึกกิจกรรมได้";
+      setSaveError(message);
+      toast.error(message);
+      console.error("Failed to update event:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleClickCancel = () => setConfirmType("cancel");
   const handleClickSave = () => setConfirmType("save");
 
-  const handleConfirmPopup = () => {
-    if (confirmType === "save") doSave();
+  const handleConfirmPopup = async () => {
+    if (confirmType === "save") await doSave();
     else if (confirmType === "cancel") onBack();
     setConfirmType(null);
   };
@@ -227,6 +256,20 @@ export default function StaffEditEventPage({ navigate, auth, data, eventId, requ
         placeholder="เช่น วิชาการ, กิจกรรมกีฬา"
         className="w-full bg-transparent border-none outline-none focus:ring-0"
       />,
+    ],
+    [
+      "สถานะ",
+      <label key="isPublic" className="flex items-center gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={Boolean(form.isPublic)}
+          onChange={(e) => setForm((prev) => ({ ...prev, isPublic: e.target.checked }))}
+          className="h-4 w-4 rounded border-gray-300 text-[#e84c3d] focus:ring-[#e84c3d]"
+        />
+        <span className="text-sm">
+          {form.isPublic ? "เผยแพร่สาธารณะ (แสดงให้ User เห็น)" : "แบบร่าง (Draft - เห็นแค่ Staff)"}
+        </span>
+      </label>,
     ],
     [
       "วันเริ่มกิจกรรม",
@@ -369,21 +412,28 @@ export default function StaffEditEventPage({ navigate, auth, data, eventId, requ
               </section>
 
               {/* ปุ่มด้านล่างขวา */}
-              <div className="mt-4 flex flex-col gap-3 border-t border-black/5 pt-4 pb-1 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-full border border-black/10 px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-black/5"
-                  onClick={handleClickCancel}
-                >
-                  ยกเลิกการแก้ไข
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-full bg-[#e84c3d] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#c03428]"
-                  onClick={handleClickSave}
-                >
-                  บันทึกการแก้ไข
-                </button>
+              <div className="mt-4 border-t border-black/5 pt-4 pb-1">
+                {saveError && (
+                  <p className="mb-3 text-sm text-red-500">{saveError}</p>
+                )}
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full border border-black/10 px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-black/5"
+                    onClick={handleClickCancel}
+                    disabled={saving}
+                  >
+                    ยกเลิกการแก้ไข
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full bg-[#e84c3d] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#c03428] disabled:opacity-70 disabled:cursor-not-allowed"
+                    onClick={handleClickSave}
+                    disabled={saving}
+                  >
+                    {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
+                  </button>
+                </div>
               </div>
             </div>
           </article>

@@ -1,5 +1,6 @@
-// src/Page/Staff_AddEventSection.jsx (refactored)
 import React, { useState } from "react";
+import { createEvent } from "../services/eventService";
+import toast from "react-hot-toast";
 
 function ImageUploader({ preview, onPick, onClear, alt }) {
   return (
@@ -45,10 +46,11 @@ function ImageUploader({ preview, onPick, onClear, alt }) {
   );
 }
 
-export default function StaffAddEventSection() {
+export default function StaffAddEventSection({ onEventAdded }) {
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [seatCount, setSeatCount] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const inputClass =
     "w-full rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#e84c3d]/40";
@@ -70,23 +72,69 @@ export default function StaffAddEventSection() {
     setSeatCount(value.replace(/[^0-9]/g, ""));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (submitting) return;
+    
     const form = e.target;
+    
+    // ดึง admin email จาก localStorage
+    const adminEmail = localStorage.getItem('adminEmail');
+    if (!adminEmail) {
+      toast.error('ไม่พบข้อมูล Admin กรุณา Login ใหม่');
+      return;
+    }
+    
+    // แปลง datetime-local เป็น ISO format
+    const eventDateTime = form.eventDateTime.value;
+    if (!eventDateTime) {
+      toast.error('กรุณาระบุวันเวลากิจกรรม');
+      return;
+    }
+    
+    // สร้าง payload ตาม format ของ Backend
     const payload = {
-      dateTime: form.eventDateTime.value,
       title: form.title.value,
-      category: form.category.value,
       description: form.description.value,
       location: form.location.value,
-      seats: isUnlimited ? null : seatCount ? Number(seatCount) : 0,
-      isUnlimited,
-      registerLink: form.registerLink.value,
-      contact: form.contact.value,
-      coverPreview: previewImage,
+      startTime: eventDateTime, // Backend รับ LocalDateTime format
+      endTime: eventDateTime, // ใช้เวลาเดียวกันก่อน (หรืออาจเพิ่ม input สำหรับ endTime)
+      category: form.category.value,
+      organizer: form.contact.value, // ใช้ contact เป็น organizer
+      maxCapacity: isUnlimited ? 999999 : (seatCount ? Number(seatCount) : 0),
+      currentParticipants: 0,
+      status: 'OPEN',
+      fee: 0.0,
+      isPublic: false, // ตั้งเป็น Draft ก่อน
+      // imageUrl: อาจต้อง upload รูปก่อน
     };
-    console.log("payload to submit:", payload);
-    // TODO: ต่อ API ที่นี่
+    
+    setSubmitting(true);
+    
+    try {
+      await createEvent(payload);
+      toast.success('เพิ่มกิจกรรมสำเร็จ! (สถานะ: Draft)');
+      
+      // Reset form
+      form.reset();
+      setPreviewImage(null);
+      setSeatCount("");
+      setIsUnlimited(false);
+      
+      // ถ้ามี callback จาก parent ให้เรียก
+      if (onEventAdded) {
+        onEventAdded();
+      } else {
+        // ถ้าไม่มี ให้ reload หน้า
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error(error.message || 'ไม่สามารถเพิ่มกิจกรรมได้');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -125,12 +173,16 @@ export default function StaffAddEventSection() {
           <textarea name="description" placeholder="คำบรรยายรายละเอียดกิจกรรม" className="mt-4 flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm resize-none min-h-[220px] focus:outline-none focus:ring-2 focus:ring-[#e84c3d]/40" />
 
           <div className="mt-4 flex justify-end">
-            <button type="submit" className="inline-flex items-center gap-2 rounded-full bg-[#e84c3d] px-6 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#d63a2b] transition">
+            <button 
+              type="submit" 
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-full bg-[#e84c3d] px-6 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#d63a2b] transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 5v14" />
                 <path d="M5 12h14" />
               </svg>
-              เพิ่มกิจกรรม
+              {submitting ? 'กำลังบันทึก...' : 'เพิ่มกิจกรรม'}
             </button>
           </div>
         </div>

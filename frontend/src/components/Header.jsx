@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { logout } from "../services/authService";
 import { FLAGS, LOGO_TEXT, THEME } from "../theme";
 import LogoMeetMeet from "../assets/img/Logo_MeetMeet.png";
+import { isStaff } from "../lib/authz";
 
 function useScrollShowDownHideUp() {
   const [hidden, setHidden] = useState(false);
@@ -57,6 +58,7 @@ export default function Header({
   useClickOutside(profRef, () => setOpenProfile(false));
 
   const isLoggedIn = auth?.loggedIn || false;
+  const homePath = isStaff(auth) ? "/staff" : "/";
   const unreadCount = isLoggedIn ? notifications.filter((n) => n.unread).length : 0;
   const user = auth?.profile || {};
   const avatarSrc = user?.avatarUrl || "";
@@ -93,8 +95,8 @@ export default function Header({
       <div className="mx-auto max-w-8/10 px-4 py-3 flex items-center justify-between">
         {/* Logo */}
         <a 
-          href="/" 
-          onClick={(e) => { e.preventDefault(); navigate("/"); }} 
+          href={homePath}
+          onClick={(e) => { e.preventDefault(); navigate(homePath); }} 
           className="flex items-center gap-2"
         >
           <img src={LogoMeetMeet} alt={LOGO_TEXT} className="h-9 w-auto" />

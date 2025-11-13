@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import StaffConfirmPopup from "./Staff_ConfirmPopup";
+import { deleteEvent } from "../services/eventService";
+import toast from "react-hot-toast";
 
 export default function StaffEventCard({
   e,
@@ -13,7 +15,8 @@ export default function StaffEventCard({
   const readerHref = `/staff/events/${e.id}/reader`;
   const editHref = `/staff/events/${e.id}/edit`;
 
-  const [deleteOpen, setDeleteOpen] = useState(false); // popup ลบ
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // วันที่กิจกรรม
   const formattedDate = useMemo(() => {
@@ -59,13 +62,28 @@ export default function StaffEventCard({
   const score = e.score ?? e.rating ?? "-";
 
   // ทำจริงตอนยืนยันลบ
-  const handleConfirmDelete = () => {
-    if (onDelete) {
-      onDelete(e);
-    } else {
-      console.log("TODO: delete event", e.id);
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    
+    try {
+      // เรียก API ลบจริง
+      await deleteEvent(e.id);
+      
+      toast.success('ลบกิจกรรมสำเร็จ!');
+      setDeleteOpen(false);
+      
+      // ถ้ามี callback จาก parent ให้เรียก
+      if (onDelete) {
+        onDelete(e);
+      } else {
+        // ถ้าไม่มี callback ให้ reload หน้า
+        setTimeout(() => window.location.reload(), 500);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error.message || 'ไม่สามารถลบกิจกรรมได้');
+      setDeleting(false);
     }
-    setDeleteOpen(false);
   };
 
   return (

@@ -129,7 +129,7 @@ export default function Login({ navigate, auth }) {
         </div>
       )}
 
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full bg-white text-gray-900">
       {/* Left Side - Video Illustration */}
       <div
         className={[

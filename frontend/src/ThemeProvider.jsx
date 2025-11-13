@@ -1,23 +1,21 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { applyThemePreference, readStoredThemePreference } from "./lib/theme";
 
-const ThemeContext = createContext({ theme: "system", setTheme: () => {} });
+const ThemeContext = createContext({ theme: "light", setTheme: () => {} });
 export const useTheme = () => useContext(ThemeContext);
-
-const VALID = ["system", "light", "dark"];
-const KEY = "mm-theme";
 
 export default function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem(KEY);
-    return VALID.includes(saved) ? saved : "system";
+    const initial = readStoredThemePreference();
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.themePreference = initial;
+    }
+    return initial;
   });
 
-useEffect(() => {
-  localStorage.setItem(KEY, theme);
-  const root = document.documentElement;
-  root.setAttribute("data-theme-preference", theme);
-}, [theme]);
-
+  useEffect(() => {
+    applyThemePreference(theme);
+  }, [theme]);
 
   const value = useMemo(() => ({ theme, setTheme }), [theme]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

@@ -6,8 +6,9 @@ import "./index.css";
 // lib
 import { usePath } from "./lib/router";
 import { useAuthStore } from "./hooks/useAuth";
-import { fetchHomeData } from "./lib/api";
+import { fetchHomeData, fetchHomeDataForStaff } from "./lib/api";
 import { isStaff } from "./lib/authz"; // ✅ เพิ่ม import
+import { applyThemePreference, readStoredThemePreference } from "./lib/theme";
 
 // pages (public)
 import Home from "./Page/Home";
@@ -65,14 +66,12 @@ function App() {
 
   // theme from preferences
   useEffect(() => {
-    const saved = localStorage.getItem("userPreferences");
-    if (saved) {
-      try { const p = JSON.parse(saved); if (p.theme) document.documentElement.dataset.themePreference = p.theme; } catch {}
-    }
+    const savedTheme = readStoredThemePreference();
+    applyThemePreference(savedTheme);
   }, []);
   useEffect(() => {
-    const t = auth.preferences?.theme ?? "system";
-    document.documentElement.dataset.themePreference = t;
+    const t = auth.preferences?.theme || "light";
+    applyThemePreference(t);
   }, [auth.preferences?.theme, path]);
 
   // data fetch
@@ -82,12 +81,16 @@ function App() {
     setLoading(true);
     const userId = auth.profile?.id || auth.userId;
     const token = auth.token;
-    fetchHomeData(token, userId)
+    
+    // เลือกใช้ function ที่เหมาะสมสำหรับ Staff หรือ User
+    const fetchFunction = auth?.loggedIn && isStaff(auth) ? fetchHomeDataForStaff : fetchHomeData;
+    
+    fetchFunction(token, userId)
       .then((data) => { if (active) setHomeData(data); })
       .catch((error) => { if (active) setHomeError(error.message ?? "ไม่สามารถโหลดข้อมูลได้"); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [auth.token, auth.profile, auth.userId, path]);
+  }, [auth.token, auth.profile, auth.userId, auth.loggedIn, path]);
 
   // ✅ บังคับให้ผู้ใช้ที่เป็น staff อยู่ใน /staff เสมอ (กันไปฝั่ง user)
   useEffect(() => {

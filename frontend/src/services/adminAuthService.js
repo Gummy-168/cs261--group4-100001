@@ -30,10 +30,20 @@ export async function adminLogin(email, password, remember = true) {
       if (adminId) {
         localStorage.setItem("userId", adminId.toString());
       }
+      
+      // เก็บ faculty ด้วย
+      if (data.faculty) {
+        localStorage.setItem("adminFaculty", data.faculty);
+      }
     }
 
     if (data.email || normalizedEmail) {
       localStorage.setItem("adminEmail", (data.email || normalizedEmail).toLowerCase());
+    }
+    
+    // เก็บ role ด้วย
+    if (data.role) {
+      localStorage.setItem("adminRole", data.role);
     }
 
     return data;
