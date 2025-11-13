@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.time.LocalDate;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/events")
@@ -55,10 +56,56 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
 
+    /**
+     * GET /api/events/by-faculty - ดูกิจกรรมตามคณะ (Admin)
+     */
+    @GetMapping("/by-faculty")
+    @Operation(summary = "Get events by faculty", description = "Filter events by faculty (for admin)")
+    public ResponseEntity<List<Event>> getEventsByFaculty(
+            @RequestParam String faculty) {
+
+        List<Event> events = eventService.getAll().stream()
+            .filter(e -> faculty.equals(e.getCreatedByFaculty()))
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(events);
+    }
+
     @GetMapping("/cards")
-    @Operation(summary = "Get all event cards", description = "Retrieve all events in card format for frontend display")
+    @Operation(summary = "Get all public event cards", description = "Retrieve all PUBLIC events in card format for frontend display")
     public ResponseEntity<List<EventCardDTO>> getAllEventCards() {
         return ResponseEntity.ok(eventService.getAllCards());
+    }
+
+    @GetMapping("/cards/admin")
+    @Operation(summary = "Get all event cards for admin", description = "Retrieve ALL events (including drafts) in card format for admin/staff")
+    public ResponseEntity<List<EventCardDTO>> getAllEventCardsForAdmin(
+            @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
+
+        // เช็คว่าเป็น Admin หรือไม่
+        if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(null);
+        }
+
+        // ดึงข้อมูล Admin เพื่อเช็คคณะ
+        var adminOpt = adminService.getAdminByEmail(adminEmail);
+        if (adminOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
+        var admin = adminOpt.get();
+
+        // ถ้ามี Faculty ระบุ ให้กรองเฉพาะคณะนั้น
+        // ถ้าไม่มี หรือเป็น "ALL" ให้แสดงทั้งหมด (สำหรับ Super Admin)
+        List<EventCardDTO> cards;
+        if (admin.getFaculty() != null && !admin.getFaculty().equalsIgnoreCase("ALL")) {
+            cards = eventService.getAllCardsForAdminByFaculty(admin.getFaculty());
+        } else {
+            cards = eventService.getAllCardsForAdmin();
+        }
+
+        return ResponseEntity.ok(cards);
     }
 
     @GetMapping("/cards/user/{userId}")
@@ -90,6 +137,16 @@ public class EventController {
                     .body(Map.of("error", "Only admins can create events"));
         }
 
+        // ดึงข้อมูล Admin เพื่อเซ็ต createdByFaculty
+        var adminOpt = adminService.getAdminByEmail(adminEmail);
+        if (adminOpt.isPresent()) {
+            var admin = adminOpt.get();
+            event.setCreatedByAdmin(adminEmail);
+            event.setCreatedByFaculty(admin.getFaculty()); // ✅ เซ็ตคณะตอนสร้าง
+        } else {
+            event.setCreatedByAdmin(adminEmail);
+        }
+
         Event created = eventService.create(event);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -111,6 +168,23 @@ public class EventController {
         }
 
         try {
+            // ✅ ดึงข้อมูล Admin และ Event เพื่อเช็ค Faculty
+            var adminOpt = adminService.getAdminByEmail(adminEmail);
+            if (adminOpt.isPresent()) {
+                var admin = adminOpt.get();
+                var existingEvent = eventService.getOne(id);
+                
+                // เช็คว่า Admin มีสิทธิ์แก้ไข Event นี้หรือไม่
+                // - ถ้าเป็น Super Admin (faculty = "ALL") แก้ไขได้หมด
+                // - ถ้าไม่ใช่ ต้องเป็น Event ของคณะเดียวกันเท่านั้น
+                if (admin.getFaculty() != null && 
+                    !admin.getFaculty().equalsIgnoreCase("ALL") &&
+                    !admin.getFaculty().equals(existingEvent.getCreatedByFaculty())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only edit events from your faculty"));
+                }
+            }
+
             Event updated = eventService.update(id, event);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
@@ -134,6 +208,23 @@ public class EventController {
         }
 
         try {
+            // ✅ ดึงข้อมูล Admin และ Event เพื่อเช็ค Faculty
+            var adminOpt = adminService.getAdminByEmail(adminEmail);
+            if (adminOpt.isPresent()) {
+                var admin = adminOpt.get();
+                var existingEvent = eventService.getOne(id);
+                
+                // เช็คว่า Admin มีสิทธิ์ลบ Event นี้หรือไม่
+                // - ถ้าเป็น Super Admin (faculty = "ALL") ลบได้หมด
+                // - ถ้าไม่ใช่ ต้องเป็น Event ของคณะเดียวกันเท่านั้น
+                if (admin.getFaculty() != null && 
+                    !admin.getFaculty().equalsIgnoreCase("ALL") &&
+                    !admin.getFaculty().equals(existingEvent.getCreatedByFaculty())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only delete events from your faculty"));
+                }
+            }
+
             eventService.delete(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {

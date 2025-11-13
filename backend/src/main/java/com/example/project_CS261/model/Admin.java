@@ -44,6 +44,9 @@ public class Admin {
     @Column(length = 100)
     private String role = "ADMIN"; // บทบาท (เผื่อมี SUPER_ADMIN ในอนาคต)
 
+    @Column(length = 100)
+    private String faculty; // คณะที่ดูแล
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 

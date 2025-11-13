@@ -20,6 +20,7 @@ public class AdminLoginResponse {
     private String email;
     private String displayName;
     private String role;
+    private String faculty;  // คณะ
     private LocalDateTime lastLogin;
 
     // Constructor สำหรับ error

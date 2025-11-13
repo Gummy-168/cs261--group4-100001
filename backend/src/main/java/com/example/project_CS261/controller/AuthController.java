@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -112,6 +113,45 @@ public class AuthController {
     }
 
     /**
+     * PUT /api/auth/theme - อัพเดท theme preference
+     */
+    @PutMapping("/theme")
+    public ResponseEntity<?> updateTheme(
+            @RequestBody Map<String, String> request,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body(
+                    Map.of("error", "No token provided")
+                );
+            }
+
+            String token = authHeader.substring(7);
+            String username = jwtService.extractUsername(token);
+            String theme = request.get("theme");
+            
+            if (theme == null || (!theme.equals("light") && !theme.equals("dark"))) {
+                return ResponseEntity.badRequest().body(
+                    Map.of("error", "Invalid theme. Must be 'light' or 'dark'")
+                );
+            }
+            
+            userService.updateTheme(username, theme);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Theme updated",
+                "theme", theme
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                Map.of("error", "Failed to update theme: " + e.getMessage())
+            );
+        }
+    }
+
+    /**
      * ฟังก์ชันดึง IP Address ของ Client
      */
     private String getClientIP(HttpServletRequest request) {
@@ -124,4 +164,5 @@ public class AuthController {
         }
         return ip;
     }
+
 }

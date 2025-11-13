@@ -53,6 +53,7 @@ public class AdminController {
                         admin.getEmail(),
                         admin.getDisplayName(),
                         admin.getRole(),
+                        admin.getFaculty(),  // เพิ่ม faculty
                         admin.getLastLogin()
                 );
                 return ResponseEntity.ok(response);

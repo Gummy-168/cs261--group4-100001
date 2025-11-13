@@ -30,9 +30,9 @@ import java.util.ArrayList;
 
 @Service
 public class EventService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(EventService.class);
-    
+
     private final EventRepository repo;
     private final FavoriteRepository favoriteRepository;
 
@@ -54,23 +54,61 @@ public class EventService {
     }
 
     /**
-     * ดึงข้อมูล Events ทั้งหมดในรูปแบบ Card DTO
-     * สำหรับแสดงใน Frontend
+     * ดึงข้อมูลเฉพาะ Events ที่เป็น Public เท่านั้น
+     */
+    public List<Event> getPublicEvents() {
+        return repo.findByIsPublicTrue();
+    }
+
+    /**
+     * ดึงข้อมูล Events ที่เป็น Public ในรูปแบบ Card DTO
+     * สำหรับแสดงใน Frontend (ฝั่ง User)
      */
     public List<EventCardDTO> getAllCards() {
+        return repo.findByIsPublicTrue().stream()
+                .map(EventCardDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ดึงข้อมูล Events ทั้งหมดในรูปแบบ Card DTO
+     * สำหรับ Admin/Staff
+     */
+    public List<EventCardDTO> getAllCardsForAdmin() {
         return repo.findAll().stream()
                 .map(EventCardDTO::new)
                 .collect(Collectors.toList());
     }
 
     /**
-     * ดึงข้อมูล Events ทั้งหมดในรูปแบบ Card DTO พร้อมเช็ค Favorite
+     * ดึงข้อมูล Events ของคณะเฉพาะในรูปแบบ Card DTO
+     * สำหรับ Admin/Staff ของคณะนั้น
+     * @param faculty - ชื่อคณะ
+     */
+    public List<EventCardDTO> getAllCardsForAdminByFaculty(String faculty) {
+        return repo.findByCreatedByFaculty(faculty).stream()
+                .map(EventCardDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ดึงข้อมูล Events ของ Admin คนนั้นเฉพาะ
+     * @param adminEmail - Email ของ Admin
+     */
+    public List<EventCardDTO> getAllCardsForAdminByEmail(String adminEmail) {
+        return repo.findByCreatedByAdmin(adminEmail).stream()
+                .map(EventCardDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * ดึงข้อมูล Events ที่เป็น Public ในรูปแบบ Card DTO พร้อมเช็ค Favorite
      * @param userId - ID ของ user เพื่อเช็คว่า favorite หรือยัง
      */
     public List<EventCardDTO> getAllCardsForUser(Long userId) {
-        List<Event> events = repo.findAll();
+        List<Event> events = repo.findByIsPublicTrue(); // แก้ไข: ดึงเฉพาะ Public Events
         List<Favorite> favorites = favoriteRepository.findByUserId(userId);
-        
+
         return events.stream()
                 .map(event -> {
                     EventCardDTO dto = new EventCardDTO(event);
@@ -108,6 +146,13 @@ public class EventService {
         existed.setLocation(e.getLocation());
         existed.setStartTime(e.getStartTime());
         existed.setEndTime(e.getEndTime());
+        existed.setCategory(e.getCategory());
+        existed.setMaxCapacity(e.getMaxCapacity());
+        existed.setOrganizer(e.getOrganizer());
+        existed.setFee(e.getFee());
+        existed.setTags(e.getTags());
+        existed.setImageUrl(e.getImageUrl());
+        existed.setIsPublic(e.getIsPublic()); // ✅ เพิ่มการ update isPublic
 
         Event updated = repo.save(existed);
         logger.info("Event updated successfully: {}", id);

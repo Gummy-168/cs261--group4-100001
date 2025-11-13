@@ -31,6 +31,9 @@ public class User {
     
     private String department; // สาขา/หน่วยงาน
 
+    @Column(length = 20)
+    private String theme = "light"; // Theme preference: light/dark
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

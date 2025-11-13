@@ -112,4 +112,27 @@ public class UserService {
         // 5. Return userId
         return user.getId();
     }
+
+    /**
+     * อัพเดท theme preference
+     */
+    public void updateTheme(String username, String theme) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+        
+        user.setTheme(theme);
+        userRepository.save(user);
+        
+        logger.info("Theme updated for user: {} to {}", username, theme);
+    }
+
+    /**
+     * ดึง theme ของ user
+     */
+    public String getTheme(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+        
+        return (user != null && user.getTheme() != null) ? user.getTheme() : "light";
+    }
 }
