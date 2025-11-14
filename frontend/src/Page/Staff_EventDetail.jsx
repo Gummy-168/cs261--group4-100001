@@ -110,7 +110,7 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // ✅ อัปโหลดไฟล์: ตรวจชนิด + ขนาด + mock อัปโหลด
+  // ✅ อัปโหลดไฟล์: ตรวจชนิด + ขนาด + เชื่อม API จริง
   const handleUploadFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -130,21 +130,44 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
     setError(null);
     setUploading(true);
     try {
-      // -------- TODO: เชื่อม API อัปโหลดจริง ----------
-      // ตัวอย่าง mock: เก็บชื่อไฟล์และขนาดไว้แสดงผล
-      setUploadInfo({ name: file.name, size: file.size });
+      const form = new FormData();
+      form.append("file", file);
 
-      // ตัวอย่างอัปโหลดจริง:
-      // const form = new FormData();
-      // form.append("file", file);
-      // form.append("eventId", String(event.id));
-      // const res = await fetch("/api/upload-spreadsheet", { method: "POST", body: form });
-      // if (!res.ok) throw new Error("Upload failed");
-      // const json = await res.json();
-      // setUploadInfo({ name: file.name, size: file.size, serverRef: json?.refId });
+      // ใช้ email จาก auth.profile
+      const adminEmail = auth?.profile?.email;
+      console.log("[DEBUG] Admin Email:", adminEmail);
+      console.log("[DEBUG] Auth Object:", auth);
+      
+      if (!adminEmail) {
+        throw new Error("ไม่พบข้อมูล Admin Email - กรุณาตรวจสอบว่าล็อกอินเป็น Admin แล้ว");
+      }
+
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+      const res = await fetch(`${API_BASE}/api/admin/events/${event.id}/participants/upload`, {
+        method: "POST",
+        headers: {
+          "X-Admin-Email": adminEmail,
+        },
+        body: form,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "อัปโหลดไม่สำเร็จ");
+      }
+
+      const json = await res.json();
+      setUploadInfo({ 
+        name: file.name, 
+        size: file.size, 
+        count: json.count || 0 
+      });
+      
+      setError(null);
+      alert(`✅ อัปโหลดสำเร็จ! เพิ่มผู้เข้าร่วม ${json.count || 0} คน`);
     } catch (err) {
       console.error(err);
-      setError("อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      setError(err.message || "อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setUploading(false);
       // ล้างค่าเพื่อให้เลือกไฟล์เดิมซ้ำได้
