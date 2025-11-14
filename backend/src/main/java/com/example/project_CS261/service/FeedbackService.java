@@ -33,8 +33,13 @@ public class FeedbackService {
             throw new IllegalArgumentException("ไม่พบกิจกรรม ID: " + eventId);
         }
 
-        if (!participantRepository.existsByEventIdAndUsername(eventId, username)) {
-            throw new IllegalArgumentException("คุณไม่ได้รับอนุมัติให้เขียน feedback ในกิจกรรมนี้");
+        // ตรวจสอบว่า user อยู่ในลิสต์ผู้เข้าร่วมและได้รับอนุญาตให้รีวิวหรือไม่
+        EventParticipant participant = participantRepository
+            .findByEventIdAndUsername(eventId, username)
+            .orElseThrow(() -> new IllegalArgumentException("ท่านไม่มีสิทธิ์เข้าถึงการรีวิวกิจกรรมนี้"));
+
+        if (participant.getCanReview() == null || !participant.getCanReview()) {
+            throw new IllegalArgumentException("ท่านไม่มีสิทธิ์เข้าถึงการรีวิวกิจกรรมนี้");
         }
 
         if (feedbackRepository.existsByEventIdAndUsername(eventId, username)) {

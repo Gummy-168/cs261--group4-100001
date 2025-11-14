@@ -95,7 +95,7 @@ public class UserParticipantController {
             // หา participant ของ user นี้ในงานนี้
             List<EventParticipant> allParticipants = participantService.getAllParticipants(eventId);
             EventParticipant userParticipant = allParticipants.stream()
-                    .filter(p -> p.getStudentId().equals(username))
+                    .filter(p -> p.getUsername().equals(username))
                     .findFirst()
                     .orElse(null);
 
@@ -163,7 +163,7 @@ public class UserParticipantController {
             // ตรวจสอบว่า user ลงทะเบียนแล้วหรือยัง
             List<EventParticipant> allParticipants = participantService.getAllParticipants(eventId);
             boolean isRegistered = allParticipants.stream()
-                    .anyMatch(p -> p.getStudentId().equals(username));
+                    .anyMatch(p -> p.getUsername().equals(username));
 
             return ResponseEntity.ok(Map.of("isRegistered", isRegistered));
 

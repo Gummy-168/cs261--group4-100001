@@ -39,11 +39,10 @@ public class EventParticipant {
     @Column(name = "approved_by", length = 50)
     private String approvedBy;
 
+    @Column(name = "can_review", nullable = false)
+    private Boolean canReview = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    public Object getStudentId() {
-        return null;
-    }
 }

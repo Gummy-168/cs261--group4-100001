@@ -31,7 +31,11 @@ public class ParticipantController {
             @RequestHeader(value = "X-Admin-Email", required = false) String adminEmail) {
 
         try {
+            System.out.println("[DEBUG] Received admin email: " + adminEmail);
+            System.out.println("[DEBUG] Is admin? " + adminService.isAdmin(adminEmail));
+            
             if (adminEmail == null || !adminService.isAdmin(adminEmail)) {
+                System.out.println("[DEBUG] Admin check failed - returning 403");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Only Admin can upload participant list"));
             }

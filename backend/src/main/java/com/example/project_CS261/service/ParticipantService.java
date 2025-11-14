@@ -88,6 +88,7 @@ public class ParticipantService {
                     participant.setStudentName(studentName);
                     participant.setEmail(email);
                     participant.setApprovedBy(approvedBy);
+                    participant.setCanReview(true); // อนุญาตให้รีวิว
 
                     participants.add(participant);
                 }
@@ -123,6 +124,7 @@ public class ParticipantService {
         participant.setStudentName(request.getStudentName());
         participant.setEmail(request.getEmail());
         participant.setApprovedBy(approvedBy);
+        participant.setCanReview(true); // อนุญาตให้รีวิว
 
         return participantRepository.save(participant);
     }
