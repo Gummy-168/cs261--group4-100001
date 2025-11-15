@@ -140,6 +140,28 @@ export function useAuthStore() {
     }
 
     persistAdminEmail(resolvedProfile);
+    if (typeof window !== "undefined" && resolvedProfile) {
+      const usernameValue =
+        resolvedProfile.username ||
+        resolvedProfile.studentId ||
+        resolvedProfile.email ||
+        resolvedProfile.id ||
+        null;
+      if (usernameValue != null) {
+        window.localStorage.setItem("username", usernameValue.toString());
+      }
+      const displayNameValue =
+        resolvedProfile.displaynameTh ||
+        resolvedProfile.fullName ||
+        resolvedProfile.name ||
+        null;
+      if (displayNameValue) {
+        window.localStorage.setItem("displayName", displayNameValue);
+      }
+      if (resolvedProfile.email) {
+        window.localStorage.setItem("userEmail", resolvedProfile.email.toLowerCase());
+      }
+    }
   }, []);
 
   const updateProfile = useCallback(
@@ -177,6 +199,9 @@ export function useAuthStore() {
       window.sessionStorage.removeItem("authToken");
       window.localStorage.removeItem("userId");
       window.localStorage.removeItem("adminEmail");
+      window.localStorage.removeItem("username");
+      window.localStorage.removeItem("displayName");
+      window.localStorage.removeItem("userEmail");
     }
     persistProfile(null);
     persistPreferences({ ...DEFAULT_PREFERENCES });

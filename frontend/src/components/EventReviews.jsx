@@ -1,43 +1,151 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import StarIcon from "./starIcon";
+import {
+  getAllFeedbacks,
+  submitFeedback,
+  deleteFeedback as deleteFeedbackApi,
+  getMyFeedback,
+} from "../services/feedbackService";
 
 export default function EventReviews({ eventId, auth, scenario = "can-review" }) {
   const [reviews, setReviews] = useState([]);
   const [newRating, setNewRating] = useState(0);
   const [newComment, setNewComment] = useState("");
   const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [eligibility, setEligibility] = useState(() => ({
+    status: auth?.loggedIn ? "checking" : "guest",
+    message: "",
+  }));
 
-useEffect(() => {
-  let active = true;
-  async function loadReviews() {
+  const refreshReviews = useCallback(async () => {
+    if (!eventId) return;
+    setLoading(true);
+    setError(null);
     try {
-      const token = auth.token; // if your API needs auth
-      const res = await fetch(`/api/events/${eventId}/reviews`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error("โหลดรีวิวไม่สำเร็จ");
-      const data = await res.json();
-      // shape: [{ id, userId, userName, rating, date, content }, …]
-      if (active) setReviews(data);
+      const list = await getAllFeedbacks(eventId);
+      const normalized = Array.isArray(list)
+        ? list
+        : Array.isArray(list?.feedbacks)
+        ? list.feedbacks
+        : [];
+      setReviews(normalized);
     } catch (err) {
       console.error(err);
+      setError(err.message || "ไม่สามารถโหลดรีวิวได้");
+      setReviews([]);
+    } finally {
+      setLoading(false);
     }
-  }
-  loadReviews();
-  return () => {
-    active = false;
-  };
-}, [eventId, auth.token]);
+  }, [eventId]);
 
-  const currentUserId = auth?.userId || auth?.profile?.id;
-  const userHasReview = useMemo(
-    () => reviews.some((r) => currentUserId && r.userId === currentUserId),
-    [reviews, currentUserId]
+  useEffect(() => {
+    refreshReviews();
+  }, [refreshReviews]);
+
+  const determineEligibility = useCallback(async () => {
+    if (!eventId) return;
+    if (!auth?.loggedIn) {
+      setEligibility({ status: "guest", message: "" });
+      return;
+    }
+    setEligibility({ status: "checking", message: "" });
+    try {
+      const feedback = await getMyFeedback(eventId);
+      if (feedback) {
+        setEligibility({ status: "has-review", feedback, message: "" });
+      } else {
+        setEligibility({ status: "allowed", message: "" });
+      }
+    } catch (err) {
+      if (err?.code === 403) {
+        setEligibility({
+          status: "forbidden",
+          message:
+            err.message || "ท่านยังไม่มีสิทธิ์รีวิวกิจกรรมนี้ในขณะนี้",
+        });
+      } else {
+        setEligibility({
+          status: "error",
+          message: err.message || "ไม่สามารถตรวจสอบสิทธิ์รีวิวได้",
+        });
+      }
+    }
+  }, [auth?.loggedIn, eventId]);
+
+  useEffect(() => {
+    determineEligibility();
+  }, [determineEligibility]);
+
+  const currentUserId =
+    auth?.userId ||
+    auth?.profile?.id ||
+    (typeof window !== "undefined"
+      ? Number(window.localStorage.getItem("userId"))
+      : null);
+  const currentUsername =
+    auth?.profile?.username ||
+    auth?.profile?.studentId ||
+    (typeof window !== "undefined"
+      ? window.localStorage.getItem("username")
+      : null);
+  const currentEmail =
+    auth?.profile?.email ||
+    (typeof window !== "undefined"
+      ? window.localStorage.getItem("adminEmail")
+      : null);
+
+  const matchesCurrentUser = useCallback(
+    (review) => {
+      const reviewUserId = review.userId ?? review.userID ?? review.ownerId;
+      if (
+        reviewUserId != null &&
+        currentUserId != null &&
+        String(reviewUserId) === String(currentUserId)
+      ) {
+        return true;
+      }
+      const reviewUsername = (
+        review.username ||
+        review.userName ||
+        review.ownerUsername ||
+        ""
+      )
+        .toString()
+        .toLowerCase();
+      if (
+        reviewUsername &&
+        currentUsername &&
+        reviewUsername === currentUsername.toString().toLowerCase()
+      ) {
+        return true;
+      }
+      const reviewEmail = (review.email || review.userEmail || "")
+        .toString()
+        .toLowerCase();
+      if (
+        reviewEmail &&
+        currentEmail &&
+        reviewEmail === currentEmail.toString().toLowerCase()
+      ) {
+        return true;
+      }
+      return false;
+    },
+    [currentUserId, currentUsername, currentEmail]
   );
-  const canReview = Boolean(auth?.loggedIn && !userHasReview);
+
+  const hasExistingReview = eligibility.status === "has-review";
+  const userHasReview = useMemo(
+    () => hasExistingReview || reviews.some((r) => matchesCurrentUser(r)),
+    [reviews, matchesCurrentUser, hasExistingReview]
+  );
+  const canReview = eligibility.status === "allowed";
 
   const { average, counts, total } = useMemo(() => {
-    if (reviews.length === 0) {
+    if (!Array.isArray(reviews) || reviews.length === 0) {
       return {
         average: 0,
         counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
@@ -47,44 +155,61 @@ useEffect(() => {
     const cnts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     let sum = 0;
     reviews.forEach((r) => {
-      cnts[r.rating] = (cnts[r.rating] || 0) + 1;
-      sum += r.rating;
+      const rating = Number(r.rating) || 0;
+      if (rating < 1 || rating > 5) return;
+      cnts[rating] = (cnts[rating] || 0) + 1;
+      sum += rating;
     });
-    return { average: sum / reviews.length, counts: cnts, total: reviews.length };
+    return {
+      average: reviews.length ? sum / reviews.length : 0,
+      counts: cnts,
+      total: reviews.length,
+    };
   }, [reviews]);
 
   const filteredReviews =
     filter === "all"
       ? reviews
-      : reviews.filter((r) => r.rating === parseInt(filter, 10));
+      : reviews.filter((r) => Number(r.rating) === parseInt(filter, 10));
 
-async function onSubmit(event) {
-  event.preventDefault();
-  if (!canReview || !newRating || !newComment.trim()) return;
-  try {
-    const token = auth.token;
-    const res = await fetch(`/api/events/${eventId}/reviews`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
+  async function onSubmit(event) {
+    event.preventDefault();
+    if (!canReview || !newRating || newComment.trim().length < 10) return;
+    try {
+      setSubmitting(true);
+      await submitFeedback(eventId, {
         rating: newRating,
-        content: newComment.trim(),
-      }),
-    });
-    if (!res.ok) throw new Error("ไม่สามารถบันทึกรีวิวได้");
-    const saved = await res.json();
-    // Prepend the saved review to state
-    setReviews((prev) => [saved, ...prev]);
-    setNewRating(0);
-    setNewComment("");
-  } catch (err) {
-    console.error(err);
-    // Optionally show an error toast here
+        comment: newComment.trim(),
+      });
+      setNewRating(0);
+      setNewComment("");
+      await refreshReviews();
+      await determineEligibility();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "ไม่สามารถบันทึกรีวิวได้");
+    } finally {
+      setSubmitting(false);
+    }
   }
-}
+
+  const deleteOwnReview = useCallback(
+    async () => {
+      if (!window.confirm("ต้องการลบรีวิวของคุณหรือไม่?")) return;
+      try {
+        setSubmitting(true);
+        await deleteFeedbackApi(eventId);
+        await refreshReviews();
+        await determineEligibility();
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "ไม่สามารถลบรีวิวได้");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [eventId, refreshReviews, determineEligibility]
+  );
 
 
   // Helper components
@@ -110,29 +235,26 @@ const RatingStars = ({ rating, className = "", size = 5 }) => {
 
 
 const DistributionBars = () => {
-  const max = Math.max(...Object.values(counts));
   return (
-    <div
-      className="flex flex-col gap-1 text-sm text-gray-500 ml-6 min-w-[12rem]"
-    >
-{[5, 4, 3, 2, 1].map((n) => {
-  // Scale relative to the total number of reviews (not the max count)
-  const percentage = total ? (counts[n] / total) * 100 : 0;
-  return (
-    <div key={n} className="flex items-center gap-2 h-3">
-      <span className="w-2 text-right mr-1">{n}</span>
-      <span className="text-xs">★</span>
-      <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full ${
-            percentage > 0 ? 'bg-[#f4b400]' : ''
-          }`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  );
-})}
+    <div className="flex flex-col gap-1 text-sm text-gray-500 ml-6 min-w-[12rem]">
+      {[5, 4, 3, 2, 1].map((n) => {
+        const value = counts?.[n] ?? 0;
+        const percentage = total ? (value / total) * 100 : 0;
+        return (
+          <div key={n} className="flex items-center gap-2 h-3">
+            <span className="w-2 text-right mr-1">{n}</span>
+            <span className="text-xs">★</span>
+            <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${
+                  percentage > 0 ? "bg-[#f4b400]" : ""
+                }`}
+                style={{ width: `${percentage}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -170,60 +292,46 @@ const DistributionBars = () => {
   );
 
   const ReviewCard = ({ review }) => {
-    const isOwner = currentUserId && review.userId === currentUserId;
+    const isOwner = matchesCurrentUser(review);
+    const displayName =
+      review.userName ||
+      review.username ||
+      review.ownerName ||
+      review.email ||
+      "ผู้ใช้ไม่ทราบชื่อ";
+    const reviewDate =
+      review.date || review.createdAt || review.updatedAt || Date.now();
+    const content = review.content ?? review.comment ?? "";
     return (
       <article className="relative flex flex-col gap-2 rounded-2xl bg-gray-100 p-4 sm:p-5">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-300" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-900 leading-tight">
-              {review.userName || "ผู้ใช้ไม่ทราบชื่อ"}
+              {displayName}
             </p>
             <div className="flex items-center gap-1 text-xs mt-0.5 text-gray-500">
-              <RatingStars rating={review.rating} size={3}/>
+              <RatingStars rating={Number(review.rating) || 0} size={3} />
               <span className="ml-2">
-                {new Date(review.date).toLocaleDateString("th-TH")}
+                {new Date(reviewDate).toLocaleDateString("th-TH")}
               </span>
             </div>
           </div>
-          <div className="relative">
-            <button type="button" className="p-1">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5 text-gray-400"
-                fill="currentColor"
-              >
-                <circle cx="12" cy="5" r="1.5" />
-                <circle cx="12" cy="12" r="1.5" />
-                <circle cx="12" cy="19" r="1.5" />
-              </svg>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={deleteOwnReview}
+              disabled={submitting}
+              className={`rounded-full border border-red-100 px-3 py-1 text-xs font-medium text-red-600 transition ${
+                submitting ? "opacity-50 cursor-not-allowed" : "hover:bg-red-50"
+              }`}
+            >
+              ลบรีวิว
             </button>
-            {isOwner && (
-              <div className="absolute right-0 top-6 z-10 w-24 rounded-md border border-black/10 bg-white py-1 text-sm shadow-lg">
-                <button
-                  type="button"
-                  className="block w-full px-3 py-2 text-left hover:bg-gray-100"
-                  onClick={() => {
-                    /* editing logic goes here */
-                  }}
-                >
-                  แก้ไข
-                </button>
-                <button
-                  type="button"
-                  className="block w-full px-3 py-2 text-left hover:bg-gray-100 text-red-600"
-                  onClick={() => {
-                    setReviews((prev) => prev.filter((r) => r.id !== review.id));
-                  }}
-                >
-                  ลบ
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
         <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-          {review.content}
+          {content || "—"}
         </p>
       </article>
     );
@@ -249,6 +357,32 @@ const DistributionBars = () => {
 
         <DistributionBars />
       </div>
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+      {loading && (
+        <p className="text-sm text-gray-500">กำลังโหลดรีวิว...</p>
+      )}
+      {eligibility.status === "checking" && auth?.loggedIn && (
+        <p className="text-sm text-gray-500">กำลังตรวจสอบสิทธิ์ในการรีวิว...</p>
+      )}
+      {eligibility.status === "guest" && (
+        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+          กรุณาเข้าสู่ระบบเพื่อเขียนรีวิวกิจกรรมนี้
+        </div>
+      )}
+      {eligibility.status === "forbidden" && (
+        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+          {eligibility.message || "คุณยังไม่สามารถรีวิวกิจกรรมนี้ได้ในขณะนี้"}
+        </div>
+      )}
+      {eligibility.status === "has-review" && (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          คุณได้เขียนรีวิวแล้ว หากต้องการแก้ไขสามารถลบรีวิวเดิมแล้วส่งใหม่อีกครั้ง
+        </div>
+      )}
         {canReview && (
           <form
             onSubmit={onSubmit}
@@ -263,8 +397,11 @@ const DistributionBars = () => {
                 <button
                   key={n}
                   type="button"
-                  onClick={() => setNewRating(n)}
-                  className="text-xl focus:outline-none transition-transform hover:scale-110"
+                  onClick={() => !submitting && setNewRating(n)}
+                  className={`text-xl focus:outline-none transition-transform hover:scale-110 ${
+                    submitting ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  disabled={submitting}
                   aria-label={`ให้คะแนน ${n} ดาว`}
                 >
                   <span className={n <= newRating ? "text-[#f4b400]" : "text-gray-300"}>
@@ -291,14 +428,14 @@ const DistributionBars = () => {
               }}
               placeholder="เขียนรีวิวของคุณที่นี่... (อย่างน้อย 10 ตัวอักษร)"
               className="flex-1 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#e84c3d] focus:border-transparent"
-              disabled={!newRating}
+              disabled={submitting}
             />
 
             {/* Send button */}
             <button
               type="submit"
               className="inline-flex items-center justify-center rounded-full bg-[#e84c3d] p-2.5 text-white shadow-sm transition hover:bg-[#c03428] hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-              disabled={!newRating || newComment.trim().length < 10}
+              disabled={!newRating || newComment.trim().length < 10 || submitting}
               aria-label="ส่งรีวิว"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -317,8 +454,8 @@ const DistributionBars = () => {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {filteredReviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
+          {filteredReviews.map((review, idx) => (
+            <ReviewCard key={review.id ?? `${review.username ?? "review"}-${idx}`} review={review} />
           ))}
         </div>
       )}

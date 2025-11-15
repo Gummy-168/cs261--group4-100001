@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { THEME, FLAGS } from "../theme";
 import StaffConfirmPopup from "../components/Staff_ConfirmPopup";
 import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
+import { uploadParticipantsList } from "../services/participantService";
 
 // --- helpers -------------------------------------------------
 function combineEventSources(data, eventId) {
@@ -46,24 +47,12 @@ function formatBytes(bytes) {
   return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
-// ตรวจชนิดไฟล์สเปรดชีต
-function isSpreadsheetFile(file) {
+// ระบบ backend อ่านไฟล์ CSV จริง ๆ แม้จะอนุญาต .xlsx ในการตรวจสอบ
+const isCsvFile = (file) => {
   if (!file) return false;
-  const okExt = [".xlsx", ".xls", ".csv", ".ods"];
   const lower = (file.name || "").toLowerCase();
-  const passExt = okExt.some((ext) => lower.endsWith(ext));
-
-  const okMime = [
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-    "application/vnd.ms-excel",                                         // .xls
-    "text/csv",                                                          // .csv
-    "application/vnd.oasis.opendocument.spreadsheet",                    // .ods
-  ];
-  const passMime = okMime.includes(file.type);
-
-  // บางเบราว์เซอร์ type อาจว่าง -> ใช้นามสกุลช่วยตัดสิน
-  return passExt || passMime;
-}
+  return lower.endsWith(".csv") || file.type === "text/csv";
+};
 
 // Unified pill row (label + read-only value)
 function PillRow({ label, children }) {
@@ -115,8 +104,8 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!isSpreadsheetFile(file)) {
-      setError("รองรับเฉพาะไฟล์ตาราง เช่น .xlsx, .xls, .csv, .ods เท่านั้น");
+    if (!isCsvFile(file)) {
+      setError("ระบบรองรับเฉพาะไฟล์ .csv (Comma Separated Values) เท่านั้น");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -130,41 +119,19 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
     setError(null);
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-
-      // ใช้ email จาก auth.profile
-      const adminEmail = auth?.profile?.email;
-      console.log("[DEBUG] Admin Email:", adminEmail);
-      console.log("[DEBUG] Auth Object:", auth);
-      
-      if (!adminEmail) {
-        throw new Error("ไม่พบข้อมูล Admin Email - กรุณาตรวจสอบว่าล็อกอินเป็น Admin แล้ว");
-      }
-
-      const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-      const res = await fetch(`${API_BASE}/api/admin/events/${event.id}/participants/upload`, {
-        method: "POST",
-        headers: {
-          "X-Admin-Email": adminEmail,
-        },
-        body: form,
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || "อัปโหลดไม่สำเร็จ");
-      }
-
-      const json = await res.json();
-      setUploadInfo({ 
-        name: file.name, 
-        size: file.size, 
-        count: json.count || 0 
+      const response = await uploadParticipantsList(event.id, file);
+      const addedCount =
+        typeof response?.count === "number"
+          ? response.count
+          : response?.participants?.length ?? 0;
+      setUploadInfo({
+        name: file.name,
+        size: file.size,
+        count: addedCount,
       });
       
       setError(null);
-      alert(`✅ อัปโหลดสำเร็จ! เพิ่มผู้เข้าร่วม ${json.count || 0} คน`);
+      alert(`✅ อัปโหลดสำเร็จ! เพิ่มผู้เข้าร่วม ${addedCount} คน`);
     } catch (err) {
       console.error(err);
       setError(err.message || "อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
@@ -325,7 +292,7 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
                     className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-100 ${
                       uploading ? "opacity-60 pointer-events-none" : ""
                     }`}
-                    title={`อัปโหลดไฟล์ตาราง (สูงสุด ${formatBytes(MAX_UPLOAD_BYTES)})`}
+                    title={`อัปโหลดไฟล์ CSV (สูงสุด ${formatBytes(MAX_UPLOAD_BYTES)})`}
                   >
                     <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-300">
                       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -334,14 +301,14 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
                         <path d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2" />
                       </svg>
                     </span>
-                    {uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์รายชื่อผู้เข้าร่วม (Excel/CSV)"}
+                    {uploading ? "กำลังอัปโหลด..." : "อัปโหลดไฟล์รายชื่อผู้เข้าร่วม (.csv)"}
                   </label>
 
                   <input
                     ref={fileInputRef}
                     id="upload-spreadsheet"
                     type="file"
-                    accept=".xlsx,.xls,.csv,.ods,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.oasis.opendocument.spreadsheet"
+                    accept=".csv,text/csv"
                     className="hidden"
                     onChange={handleUploadFile}
                   />

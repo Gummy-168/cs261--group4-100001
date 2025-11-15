@@ -27,6 +27,15 @@ export const login = async (identifier, password, remember = true) => {
       const storage = remember ? localStorage : sessionStorage;
       storage.setItem('authToken', data.token);
       localStorage.setItem('userId', data.userId.toString());
+      if (data.username) {
+        localStorage.setItem('username', data.username.toString());
+      }
+      if (data.displaynameTh) {
+        localStorage.setItem('displayName', data.displaynameTh);
+      }
+      if (data.email) {
+        localStorage.setItem('userEmail', data.email.toLowerCase());
+      }
     }
 
     return data;
@@ -62,6 +71,9 @@ export const logout = () => {
   sessionStorage.removeItem('authToken');
   localStorage.removeItem('userId');
   localStorage.removeItem('profileDraft');
+  localStorage.removeItem('username');
+  localStorage.removeItem('displayName');
+  localStorage.removeItem('userEmail');
 };
 
 /**

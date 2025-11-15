@@ -1,5 +1,40 @@
 import axiosInstance from '../lib/axiosInstance';
 
+const readProfileDraft = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem('profileDraft');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const resolveReviewerUsername = () => {
+  if (typeof window === 'undefined') return null;
+  const profile = readProfileDraft();
+  const username =
+    profile?.username ||
+    profile?.studentId ||
+    profile?.email ||
+    window.localStorage.getItem('username') ||
+    window.sessionStorage.getItem('username') ||
+    window.localStorage.getItem('userEmail') ||
+    window.sessionStorage.getItem('userEmail') ||
+    profile?.id?.toString() ||
+    window.localStorage.getItem('userId') ||
+    window.sessionStorage.getItem('userId');
+  return username ? username.toString() : null;
+};
+
+const getReviewerHeaders = () => {
+  const username = resolveReviewerUsername();
+  if (!username) {
+    throw new Error('กรุณาเข้าสู่ระบบก่อนจึงจะสามารถรีวิวได้');
+  }
+  return { 'X-Username': username };
+};
+
 /**
  * สร้าง Feedback สำหรับ Event
  * @param {number} eventId - ID ของกิจกรรม
@@ -8,15 +43,11 @@ import axiosInstance from '../lib/axiosInstance';
  */
 export const createFeedback = async (eventId, feedbackData) => {
   try {
-    const username = localStorage.getItem('userId'); // หรือ username จาก auth
-    
     const response = await axiosInstance.post(
       `/events/${eventId}/feedbacks`,
       feedbackData,
       {
-        headers: {
-          'X-Username': username
-        }
+        headers: getReviewerHeaders()
       }
     );
     return response.data;
@@ -34,15 +65,11 @@ export const createFeedback = async (eventId, feedbackData) => {
  */
 export const updateFeedback = async (eventId, feedbackData) => {
   try {
-    const username = localStorage.getItem('userId');
-    
     const response = await axiosInstance.put(
       `/events/${eventId}/feedbacks`,
       feedbackData,
       {
-        headers: {
-          'X-Username': username
-        }
+        headers: getReviewerHeaders()
       }
     );
     return response.data;
@@ -59,12 +86,8 @@ export const updateFeedback = async (eventId, feedbackData) => {
  */
 export const deleteFeedback = async (eventId) => {
   try {
-    const username = localStorage.getItem('userId');
-    
     const response = await axiosInstance.delete(`/events/${eventId}/feedbacks`, {
-      headers: {
-        'X-Username': username
-      }
+      headers: getReviewerHeaders()
     });
     return response.data;
   } catch (error) {
@@ -95,18 +118,23 @@ export const getAllFeedbacks = async (eventId) => {
  */
 export const getMyFeedback = async (eventId) => {
   try {
-    const username = localStorage.getItem('userId');
-    
     const response = await axiosInstance.get(`/events/${eventId}/feedbacks/my`, {
-      headers: {
-        'X-Username': username
-      }
+      headers: getReviewerHeaders()
     });
     
-    return response.data.feedback;
+    return response.data.feedback ?? null;
   } catch (error) {
+    const message = error.response?.data?.error || error.message;
+    if (error.response?.status === 404) {
+      return null;
+    }
+    if (error.response?.status === 403) {
+      const err = new Error(message || 'ท่านไม่มีสิทธิ์เข้าถึงการรีวิวกิจกรรมนี้');
+      err.code = 403;
+      throw err;
+    }
     console.error('Error fetching my feedback:', error);
-    return null;
+    throw new Error(message || 'ไม่สามารถโหลด feedback ได้');
   }
 };
 
@@ -135,6 +163,9 @@ export const hasUserGivenFeedback = async (eventId) => {
     const myFeedback = await getMyFeedback(eventId);
     return myFeedback !== null;
   } catch (error) {
+    if (error?.code === 403) {
+      throw error;
+    }
     console.error('Error checking feedback status:', error);
     return false;
   }
