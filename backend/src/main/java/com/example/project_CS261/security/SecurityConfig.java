@@ -10,6 +10,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,8 +28,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - ไม่ต้อง login
                         .requestMatchers("/api/auth/login").permitAll()
@@ -45,6 +45,13 @@ public class SecurityConfig {
                         
                         // Event Popularity - Public
                         .requestMatchers("/api/events/popularity/**").permitAll()
+
+
+                        // ทางด่วน Admin
+                        .requestMatchers(HttpMethod.POST, "/api/events").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/events/{id}").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/admin/events/{eventId}/participants/upload").permitAll()
+
 
                         // Protected endpoints - ต้อง login
                         // Favorites

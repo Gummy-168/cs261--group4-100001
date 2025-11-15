@@ -5,6 +5,7 @@ import com.example.project_CS261.dto.AdminLoginResponse;
 import com.example.project_CS261.model.Admin;
 import com.example.project_CS261.service.AdminService;
 import com.example.project_CS261.security.JwtService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import com.example.project_CS261.service.ParticipantService;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 /**
  * Admin Controller - จัดการ Admin Login และ CRUD
  */

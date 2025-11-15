@@ -4,18 +4,31 @@ import com.example.project_CS261.dto.ParticipantRequest;
 import com.example.project_CS261.model.EventParticipant;
 import com.example.project_CS261.repository.EventParticipantRepository;
 import com.example.project_CS261.repository.EventRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+
+import com.example.project_CS261.model.Event;
+import com.example.project_CS261.exception.ResourceNotFoundException;
+
+
 @Service
 public class ParticipantService {
-
+    @Autowired
     private final EventParticipantRepository participantRepository;
     private final EventRepository eventRepository;
 
@@ -153,5 +166,58 @@ public class ParticipantService {
      */
     public List<EventParticipant> getUserParticipations(String username) {
         return participantRepository.findByUsername(username);
+    }
+
+    /**
+     * U12: Logic การประมวลผลไฟล์ CSV และบันทึกผู้เข้าร่วม
+     * @param eventId ID ของ Event
+     * @param file ไฟล์ .csv ที่อัปโหลด
+     * @throws IOException
+     */
+    public void uploadParticipantsFromCsv(Long eventId, MultipartFile file) throws IOException {
+
+        // 1. ค้นหา Event หลัก
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + eventId));
+
+        List<EventParticipant> participantsToSave = new ArrayList<>();
+
+        // 2. ใช้ try-with-resources เพื่อเปิด Reader และ Parser
+        try (BufferedReader fileReader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
+             CSVParser csvParser = new CSVParser(fileReader,
+                     CSVFormat.DEFAULT.withHeader("username", "student_name", "email") // ตรงตาม Spec U12
+                             .withFirstRecordAsHeader()  // บอกว่าแถวแรกคือ Header
+                             .withIgnoreHeaderCase()
+                             .withTrim())) {
+
+            // 3. วน Loop อ่านข้อมูลทีละแถว
+            for (CSVRecord csvRecord : csvParser) {
+                String username = csvRecord.get("username");
+                String studentName = csvRecord.get("student_name");
+                String email = csvRecord.get("email");
+
+                // (ป้องกัน Error) ข้ามแถวที่ข้อมูล username ว่างเปล่า
+                if (username == null || username.isEmpty()) {
+                    continue;
+                }
+
+                // 4. สร้าง Object
+                EventParticipant participant = new EventParticipant();
+                participant.setEventId(event.getId());
+                participant.setUsername(username); // หรือ set User ถ้าคุณเชื่อมตาราง User
+                participant.setStudentName(studentName);
+                participant.setEmail(email);
+
+                // กำหนดสิทธิ์ให้รีวิวได้ ตาม SQL 'add_can_review_column.sql'
+                participant.setCanReview(true);
+
+                participantsToSave.add(participant);
+            }
+
+            // 5. บันทึกข้อมูลทั้งหมดลง DB ในครั้งเดียว (ประสิทธิภาพดีกว่า)
+            if (!participantsToSave.isEmpty()) {
+                participantRepository.saveAll(participantsToSave);
+            }
+        }
     }
 }
