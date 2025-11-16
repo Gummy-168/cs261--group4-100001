@@ -33,7 +33,7 @@ public class SecurityConfig {
                         // Public endpoints - ไม่ต้อง login
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/admin/login").permitAll()  // Admin login ต้อง public
-                        
+
                         // Events - Public (ดูได้ไม่ต้อง login)
                         .requestMatchers("/api/events", "/api/events/{id}", "/api/events/cards/**", "/api/events/search/**", "/api/events/category/**").permitAll()
 
@@ -42,10 +42,10 @@ public class SecurityConfig {
 
                         // Images - Public
                         .requestMatchers("/api/images/**", "/images/**", "/static/**").permitAll()
-                        
+
                         // Swagger UI - Public
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/swagger-ui.html").permitAll()
-                        
+
                         // Event Popularity - Public
                         .requestMatchers("/api/events/popularity/**").permitAll()
 
@@ -59,16 +59,16 @@ public class SecurityConfig {
                         // Protected endpoints - ต้อง login
                         // Favorites
                         .requestMatchers("/api/favorites/**").authenticated()
-                        
+
                         // Participants
                         .requestMatchers("/api/participants/**").authenticated()
-                        
+
                         // Notifications
                         .requestMatchers("/api/notifications/**").authenticated()
-                        
+
                         // Feedback
                         .requestMatchers("/api/feedback/**").authenticated()
-                        
+
                         // Admin endpoints - ต้องเป็น Admin (Coming soon)
                         // .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
