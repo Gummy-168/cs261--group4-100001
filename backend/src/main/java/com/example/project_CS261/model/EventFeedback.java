@@ -29,7 +29,7 @@ public class EventFeedback {
     @Column(nullable = false, length = 50)
     private String username;
 
-    @Column(nullable = false, length = 2000)
+    @Column(columnDefinition = "NVARCHAR(2000)")
     private String comment;
 
     @Min(value = 1, message = "คะแนนต้องมากกว่าหรือเท่ากับ 1")

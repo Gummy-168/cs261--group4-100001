@@ -22,13 +22,15 @@ public class User {
     @Column(unique = true, nullable = false, length = 50)
     private String username; // รหัสนักศึกษา/บุคลากร จาก TU API
 
-    @Column(nullable = false, name = "displayname_th")
+    @Column(nullable = false, name = "displayname_th", columnDefinition = "NVARCHAR(100)")
     private String displaynameTh; // ชื่อภาษาไทย
 
     private String email; // อีเมล์จาก TU API
-    
+
+    @Column(columnDefinition = "NVARCHAR(100)")
     private String faculty; // คณะ
-    
+
+    @Column(columnDefinition = "NVARCHAR(100)")
     private String department; // สาขา/หน่วยงาน
 
     @Column(length = 20)

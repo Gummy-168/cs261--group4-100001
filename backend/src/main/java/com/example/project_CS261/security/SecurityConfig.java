@@ -36,7 +36,10 @@ public class SecurityConfig {
                         
                         // Events - Public (ดูได้ไม่ต้อง login)
                         .requestMatchers("/api/events", "/api/events/{id}", "/api/events/cards/**", "/api/events/search/**", "/api/events/category/**").permitAll()
-                        
+
+                        // Favorite user ดูได้
+                        .requestMatchers("/api/favorites/**").authenticated()
+
                         // Images - Public
                         .requestMatchers("/api/images/**", "/images/**", "/static/**").permitAll()
                         
