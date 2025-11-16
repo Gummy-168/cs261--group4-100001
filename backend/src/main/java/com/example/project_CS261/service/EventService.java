@@ -28,6 +28,10 @@ import java.time.LocalTime;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import com.example.project_CS261.repository.EventSpecifications;
+
 @Service
 public class EventService {
 
@@ -224,21 +228,29 @@ public class EventService {
                 predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startTime"), endTime.atTime(LocalTime.MAX)));
             }
 
+            // ⭐️ เพิ่มเงื่อนไข: ดึงเฉพาะ isPublic = true
+            predicates.add(criteriaBuilder.isTrue(root.get("isPublic")));
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
 
         // เรียงลำดับ
-        Sort sort = switch (sortBy) {
-            case "featured" -> // "เรื่องเด่น"  คือมีคนเข้าร่วมเยอะสุด
+        Sort sort = switch (sortBy.toLowerCase()) { // ⭐️ เพิ่ม .toLowerCase() เพื่อความปลอดภัย
+            // ⭐️ [แก้ไข] เปลี่ยน "featured" เป็น "popular"
+            case "popular" -> // "เรื่องเด่น"  คือมีคนเข้าร่วมเยอะสุด
                     Sort.by(Sort.Direction.DESC, "currentParticipants");
-            case "newest" -> // "กิจกรรมใหม่"  กิจกรรมที่กำลังจะเริ่มเร็วๆ นี้ (เอา DESC เพื่อให้วันที่ล่าสุดขึ้นก่อน)
+
+            // ⭐️ [แก้ไข] เปลี่ยน "newest" เป็น "new"
+            case "new" -> // "กิจกรรมใหม่"  กิจกรรมที่กำลังจะเริ่มเร็วๆ นี้ (เอา DESC เพื่อให้วันที่ล่าสุดขึ้นก่อน)
                     Sort.by(Sort.Direction.DESC, "startTime");
-            case "closingSoon" -> // "ใกล้ปิดรับสมัคร"  กิจกรรมที่กำลังจะจบ (endTime) เร็วที่สุด
-                    Sort.by(Sort.Direction.ASC, "endTime"); // "เรียงลำดับ" (ค่าเริ่มต้น)
+
+            case "closingsoon" -> // "ใกล้ปิดรับสมัคร"  กิจกรรมที่กำลังจะจบ (endTime) เร็วที่สุด
+                    Sort.by(Sort.Direction.ASC, "endTime");
+
             default ->
-                // ค่าเริ่มต้น เราเรียงตามวันที่เริ่มกิจกรรม (ASC คือเก่าไปใหม่)
-                    Sort.by(Sort.Direction.ASC, "startTime");
+                    // ค่าเริ่มต้น เราเรียงตามวันที่เริ่มกิจกรรม (ASC คือเก่าไปใหม่)
+                        Sort.by(Sort.Direction.ASC, "startTime");
         };
 
         // ส่ง Specification ไปให้ Repository ค้นหา
