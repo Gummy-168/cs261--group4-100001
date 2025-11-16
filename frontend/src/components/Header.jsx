@@ -62,6 +62,7 @@ export default function Header({
   const unreadCount = isLoggedIn ? notifications.filter((n) => n.unread).length : 0;
   const user = auth?.profile || {};
   const avatarSrc = user?.avatarUrl || "";
+  const headerDisplayName = user.displayName || user.displaynameTh || user.username || "ผู้ใช้";
 
   // Handle Logout
   const handleLogout = () => {
@@ -228,7 +229,7 @@ export default function Header({
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
-                  {user.displaynameTh?.charAt(0) || user.username?.charAt(0) || 'U'}
+                  {headerDisplayName.charAt(0)}
                 </div>
               )}
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -240,7 +241,7 @@ export default function Header({
               {openProfile && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
                   <div className="px-4 py-3 border-b border-gray-200">
-                    <p className="font-semibold text-gray-900">{user.displaynameTh || 'ผู้ใช้'}</p>
+                    <p className="font-semibold text-gray-900">{headerDisplayName}</p>
                     <p className="text-sm text-gray-600">{user.email || user.username}</p>
                   </div>
                   
