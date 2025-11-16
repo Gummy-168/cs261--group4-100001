@@ -24,10 +24,10 @@ export default function SettingsPage({ navigate, auth }) {
       />
       <div className="flex flex-1 pt-[68px]">
         <aside className="w-[260px] border-r border-gray-200/70 bg-[var(--color-bg)] px-6 py-8 hidden md:block">
-      <div className="text-center">
-          <h2 className="text-xl font-semibold">การตั้งค่า</h2>
-          <div className="h-[2px] w-48 bg-gray-300 mt-2 mb-6 mx-auto" />
-      </div>
+          <div className="text-center">
+            <h2 className="text-xl font-semibold">การตั้งค่า</h2>
+            <div className="h-[2px] w-48 bg-gray-300 mt-2 mb-6 mx-auto" />
+          </div>
 
           <nav className="flex flex-col gap-2">
             {MENU.map((item) => (
@@ -63,25 +63,22 @@ export default function SettingsPage({ navigate, auth }) {
 
 function ProfileSection({ auth }) {
   const saved = auth.profile ?? {};
-  const [edit, setEdit] = useState(false);
   const adminLocked = isAdmin(auth);
-  const [draft, setDraft] = useState({
-    displaynameTh: saved.displaynameTh ?? "",
-    username: saved.username ?? "",
-    email: saved.email ?? "",
-  });
+
+  const initialDisplayName = saved.displayName ?? saved.displaynameTh ?? "";
+
+  const [edit, setEdit] = useState(false);
+  const [displayName, setDisplayName] = useState(initialDisplayName);
   const [avatarSaved, setAvatarSaved] = useState(saved.avatarUrl || "");
   const [avatarPreview, setAvatarPreview] = useState("");
   const fileRef = useRef(null);
 
   useEffect(() => {
-    setDraft({
-      displaynameTh: saved.displaynameTh ?? "",
-      username: saved.username ?? "",
-      email: saved.email ?? "",
-    });
+    const initial = saved.displayName ?? saved.displaynameTh ?? "";
+    setDisplayName(initial);
     setAvatarSaved(saved.avatarUrl || "");
-  }, [saved.displaynameTh, saved.username, saved.email, saved.avatarUrl]);
+  }, [saved.displayName, saved.displaynameTh, saved.avatarUrl]);
+
   useEffect(() => {
     if (adminLocked) {
       setEdit(false);
@@ -97,7 +94,7 @@ function ProfileSection({ auth }) {
 
   const pickFile = () => fileRef.current?.click();
 
-  const onFile = async (e) => {
+  const onFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
@@ -108,19 +105,14 @@ function ProfileSection({ auth }) {
   const cancel = () => {
     setEdit(false);
     setAvatarPreview("");
-    setDraft({
-      displaynameTh: saved.displaynameTh ?? "",
-      username: saved.username ?? "",
-      email: saved.email ?? "",
-    });
+    const initial = saved.displayName ?? saved.displaynameTh ?? "";
+    setDisplayName(initial);
   };
 
   const save = () => {
     const next = {
       ...(auth.profile ?? {}),
-      displaynameTh: draft.displaynameTh,
-      username: draft.username,
-      email: draft.email,
+      displayName: displayName || saved.displaynameTh || "",
       avatarUrl: avatarPreview ? avatarPreview : avatarSaved,
     };
     auth.updateProfile(next);
@@ -140,6 +132,7 @@ function ProfileSection({ auth }) {
       )}
 
       <div className="grid grid-cols-12 gap-8">
+        {/* Avatar */}
         <div className="col-span-12 md:col-span-5">
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
@@ -151,7 +144,13 @@ function ProfileSection({ auth }) {
             </div>
             {edit && (
               <>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onFile}
+                />
                 <button
                   onClick={pickFile}
                   className="px-4 py-1.5 rounded-full text-sm bg-white border border-gray-300 hover:bg-gray-100"
@@ -163,6 +162,7 @@ function ProfileSection({ auth }) {
           </div>
         </div>
 
+        {/* ปุ่มแก้ไข */}
         <div className="col-span-12 md:col-span-7 flex md:justify-end">
           {!adminLocked && !edit && (
             <button
@@ -181,18 +181,18 @@ function ProfileSection({ auth }) {
 
         <div className="col-span-12 md:col-span-5">
           <Field
-            label="ชื่อที่แสดงให้เห็น"
-            value={draft.displaynameTh}
-            onChange={(v) => setDraft((s) => ({ ...s, displaynameTh: v }))}
+            label="ชื่อที่แสดง"
+            value={displayName}
+            onChange={(v) => setDisplayName(v)}
             readOnly={!edit}
-            placeholder="Johnny"
+            placeholder="ตั้งชื่อที่ต้องการให้แสดง"
           />
           <div className="mt-4">
             <Field
               label="ชื่อ"
-              value={"xxxx xxxxxxxx"}
+              value={saved.displaynameTh || ""}
               readOnly
-              placeholder="xxxx xxxxxxxx"
+              placeholder=""
             />
           </div>
         </div>
@@ -200,16 +200,14 @@ function ProfileSection({ auth }) {
         <div className="col-span-12 md:col-span-7">
           <Field
             label="รหัสนักศึกษา"
-            value={draft.username}
-            onChange={(v) => setDraft((s) => ({ ...s, username: v }))}
+            value={saved.username || ""}
             readOnly
             placeholder=""
           />
           <div className="mt-4">
             <Field
               label="อีเมล"
-              value={draft.email}
-              onChange={(v) => setDraft((s) => ({ ...s, email: v }))}
+              value={saved.email || ""}
               readOnly
               placeholder=""
             />
@@ -236,6 +234,7 @@ function ProfileSection({ auth }) {
     </section>
   );
 }
+
 
 function Field({ label, value, onChange, readOnly, placeholder }) {
   return (
