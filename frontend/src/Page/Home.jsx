@@ -232,7 +232,7 @@ export default function Home({ navigate, auth, data, requireLogin }) {
               )}
 
             <EventsSection
-            list={data?.events || []}
+            list={events}
               loggedIn={auth.loggedIn}
               onToggle={onToggleLike}
               onSeeAllLink={() => navigate("/activities")}
