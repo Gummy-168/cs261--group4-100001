@@ -173,11 +173,11 @@ public class EventController {
             if (adminOpt.isPresent()) {
                 var admin = adminOpt.get();
                 var existingEvent = eventService.getOne(id);
-                
+
                 // เช็คว่า Admin มีสิทธิ์แก้ไข Event นี้หรือไม่
                 // - ถ้าเป็น Super Admin (faculty = "ALL") แก้ไขได้หมด
                 // - ถ้าไม่ใช่ ต้องเป็น Event ของคณะเดียวกันเท่านั้น
-                if (admin.getFaculty() != null && 
+                if (admin.getFaculty() != null &&
                     !admin.getFaculty().equalsIgnoreCase("ALL") &&
                     !admin.getFaculty().equals(existingEvent.getCreatedByFaculty())) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -213,11 +213,11 @@ public class EventController {
             if (adminOpt.isPresent()) {
                 var admin = adminOpt.get();
                 var existingEvent = eventService.getOne(id);
-                
+
                 // เช็คว่า Admin มีสิทธิ์ลบ Event นี้หรือไม่
                 // - ถ้าเป็น Super Admin (faculty = "ALL") ลบได้หมด
                 // - ถ้าไม่ใช่ ต้องเป็น Event ของคณะเดียวกันเท่านั้น
-                if (admin.getFaculty() != null && 
+                if (admin.getFaculty() != null &&
                     !admin.getFaculty().equalsIgnoreCase("ALL") &&
                     !admin.getFaculty().equals(existingEvent.getCreatedByFaculty())) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN)

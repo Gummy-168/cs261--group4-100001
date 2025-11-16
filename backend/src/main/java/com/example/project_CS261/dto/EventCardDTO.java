@@ -36,7 +36,7 @@ public class EventCardDTO {
     private Boolean isFull; // เช็คว่าเต็มหรือยัง
     private Integer availableSeats; // จำนวนที่นั่งว่าง
     private Boolean isFavorited; // เช็คว่า user favorite หรือยัง (ถ้าส่ง userId มา)
-    
+
     /**
      * Constructor สำหรับสร้างจาก Event Entity
      */
@@ -55,7 +55,7 @@ public class EventCardDTO {
         this.organizer = event.getOrganizer();
         this.fee = event.getFee();
         this.tags = event.getTags();
-        
+
         // คำนวณข้อมูลเพิ่มเติม
         if (this.maxCapacity != null && this.currentParticipants != null) {
             this.availableSeats = this.maxCapacity - this.currentParticipants;

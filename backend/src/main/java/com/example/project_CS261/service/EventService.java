@@ -20,6 +20,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+// ⭐️ [FIX 1] ADD IMPORT
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,6 +46,10 @@ public class EventService {
     private final NotificationQueueRepository notificationQueueRepository;
     private final UserRepository userRepository;
 
+    // ⭐️ [FIX 2] ADD FIELD: ดึง Base URL (ถ้าไม่มีใน .properties, จะใช้ 8080 เป็นค่าเริ่มต้น)
+    @Value("${server.base-url:http://localhost:8080}")
+    private String baseUrl;
+
     public EventService(EventRepository repo, FavoriteRepository favoriteRepository,
                         NotificationService notificationService, NotificationQueueRepository notificationQueueRepository, UserRepository userRepository) {
         this.repo = repo;
@@ -54,14 +60,16 @@ public class EventService {
     }
 
     public List<Event> getAll() {
-        return repo.findAll();
+        // ⭐️ [FIX 3] ADD CALL to helper
+        return updateEventImageUrls(repo.findAll());
     }
 
     /**
      * ดึงข้อมูลเฉพาะ Events ที่เป็น Public เท่านั้น
      */
     public List<Event> getPublicEvents() {
-        return repo.findByIsPublicTrue();
+        // ⭐️ [FIX 3] ADD CALL to helper
+        return updateEventImageUrls(repo.findByIsPublicTrue());
     }
 
     /**
@@ -70,7 +78,8 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCards() {
         return repo.findByIsPublicTrue().stream()
-                .map(EventCardDTO::new)
+                // ⭐️ [FIX 3] Use helper for DTO
+                .map(this::toCardDTOWithAbsoluteUrl)
                 .collect(Collectors.toList());
     }
 
@@ -80,7 +89,8 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCardsForAdmin() {
         return repo.findAll().stream()
-                .map(EventCardDTO::new)
+                // ⭐️ [FIX 3] Use helper for DTO
+                .map(this::toCardDTOWithAbsoluteUrl)
                 .collect(Collectors.toList());
     }
 
@@ -91,7 +101,8 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCardsForAdminByFaculty(String faculty) {
         return repo.findByCreatedByFaculty(faculty).stream()
-                .map(EventCardDTO::new)
+                // ⭐️ [FIX 3] Use helper for DTO
+                .map(this::toCardDTOWithAbsoluteUrl)
                 .collect(Collectors.toList());
     }
 
@@ -101,7 +112,8 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCardsForAdminByEmail(String adminEmail) {
         return repo.findByCreatedByAdmin(adminEmail).stream()
-                .map(EventCardDTO::new)
+                // ⭐️ [FIX 3] Use helper for DTO
+                .map(this::toCardDTOWithAbsoluteUrl)
                 .collect(Collectors.toList());
     }
 
@@ -110,11 +122,14 @@ public class EventService {
      * @param userId - ID ของ user เพื่อเช็คว่า favorite หรือยัง
      */
     public List<EventCardDTO> getAllCardsForUser(Long userId) {
-        List<Event> events = repo.findByIsPublicTrue(); // แก้ไข: ดึงเฉพาะ Public Events
+        List<Event> events = repo.findByIsPublicTrue();
         List<Favorite> favorites = favoriteRepository.findByUserId(userId);
 
         return events.stream()
                 .map(event -> {
+
+                    updateEventImageUrl(event); // ⭐️ [FIX] ต้องเพิ่มบรรทัดนี้
+
                     EventCardDTO dto = new EventCardDTO(event);
                     // เช็คว่า user favorite กิจกรรมนี้หรือยัง
                     boolean isFavorited = favorites.stream()
@@ -126,14 +141,19 @@ public class EventService {
     }
 
     public Event getOne(Long id) {
-        return repo.findById(id)
+        Event event = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+
+        updateEventImageUrl(event); // ⭐️ [FIX] ต้องเพิ่มบรรทัดนี้
+
+        return event;
     }
 
     public Event create(Event e) {
         logger.info("Creating new event: {}", e.getTitle());
         Event saved = repo.save(e);
         logger.info("Event created with ID: {}", saved.getId());
+        updateEventImageUrl(saved); // ⭐️ [FIX 3] ADD CALL to helper
         return saved;
     }
 
@@ -180,6 +200,7 @@ public class EventService {
             logger.info("Sent {} update notifications.", subscribers.size());
         }
 
+        updateEventImageUrl(updated); // ⭐️ [FIX 3] ADD CALL to helper
         return updated;
     }
 
@@ -249,11 +270,44 @@ public class EventService {
                     Sort.by(Sort.Direction.ASC, "endTime");
 
             default ->
-                    // ค่าเริ่มต้น เราเรียงตามวันที่เริ่มกิจกรรม (ASC คือเก่าไปใหม่)
-                        Sort.by(Sort.Direction.ASC, "startTime");
+                // ค่าเริ่มต้น เราเรียงตามวันที่เริ่มกิจกรรม (ASC คือเก่าไปใหม่)
+                    Sort.by(Sort.Direction.ASC, "startTime");
         };
 
         // ส่ง Specification ไปให้ Repository ค้นหา
-        return repo.findAll(spec, sort);
+        List<Event> events = repo.findAll(spec, sort);
+        return updateEventImageUrls(events); // ⭐️ [FIX 3] ADD CALL to helper (นี่คือจุดที่สำคัญที่สุดสำหรับหน้า Activities)
+    }
+
+
+    // ⭐️ [FIX 4] ADD HELPER METHODS (เพิ่ม 3 เมธอดนี้ต่อท้ายคลาส)
+
+    /**
+     * Helper method to convert relative image URL to absolute URL.
+     * (เช่น /api/images/file.png -> http://localhost:8080/api/images/file.png)
+     */
+    private void updateEventImageUrl(Event event) {
+        if (event == null) return;
+        String imageUrl = event.getImageUrl();
+        // เช็คว่า imageUrl ไม่ null, ไม่ใช่ "http" (เผื่อเป็น URL เต็มอยู่แล้ว), และไม่ใช่ "data:image" (เผื่อเป็น Base64)
+        if (imageUrl != null && !imageUrl.startsWith("http") && !imageUrl.startsWith("data:image")) {
+            event.setImageUrl(baseUrl + imageUrl);
+        }
+    }
+
+    /**
+     * Helper method สำหรับ List
+     */
+    private List<Event> updateEventImageUrls(List<Event> events) {
+        events.forEach(this::updateEventImageUrl);
+        return events;
+    }
+
+    /**
+     * Helper method สำหรับ DTO
+     */
+    private EventCardDTO toCardDTOWithAbsoluteUrl(Event event) {
+        updateEventImageUrl(event);
+        return new EventCardDTO(event);
     }
 }

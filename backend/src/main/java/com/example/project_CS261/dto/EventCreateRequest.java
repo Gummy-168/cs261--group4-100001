@@ -18,4 +18,5 @@ public class EventCreateRequest {
     public String organizerContact;
     public String posterUrl;     // jpg/png
     public String registerUrl;   // optional
+    private String imageurl;
 }

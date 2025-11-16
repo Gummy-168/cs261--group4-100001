@@ -2,7 +2,7 @@ package com.example.project_CS261.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 @Entity
 @Table(name = "events")
 public class Event {
@@ -44,8 +44,10 @@ public class Event {
     @Column
     private Double fee = 0.0;
 
-    @Column(columnDefinition = "NVARCHAR(500)")
+    @JsonProperty("coverUrl")  // 👈 บอกว่าตอนส่ง JSON ให้ใช้ชื่อนี้ (ที่ React ต้องการ)
+    @Column(columnDefinition = "NVARCHAR(500)",name = "imageUrl")
     private String imageUrl;
+
 
     @Column(name = "created_by_admin", columnDefinition = "NVARCHAR(200)")
     private String createdByAdmin;
