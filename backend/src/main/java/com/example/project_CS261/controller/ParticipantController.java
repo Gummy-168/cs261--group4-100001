@@ -12,6 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.example.project_CS261.model.User;
+
 @RestController
 @RequestMapping("/api/admin/events/{eventId}/participants")
 public class ParticipantController {

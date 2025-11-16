@@ -14,20 +14,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import com.example.project_CS261.model.User;
-import com.example.project_CS261.repository.UserRepository;
-import org.springframework.security.core.userdetails.UserDetails; // Import UserDetails (เผื่อไว้ แต่เราใช้ User)
-import java.util.Optional; // 4. Import Optional
-
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserRepository userRepository; // 5. เพิ่ม UserRepository
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserRepository userRepository) { // 6. แก้ Constructor
+    public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.userRepository = userRepository; // 7. เพิ่มการฉีด
     }
 
     @Override
@@ -64,22 +57,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             username = jwtService.extractUsername(jwt);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (jwtService.validateToken(jwt)) {
+                    Long userId = jwtService.extractUserId(jwt);
 
-                // ดึง User ทั้งอ็อบเจ็กต์จาก DB
-                Optional<User> userOptional = userRepository.findByUsername(username);
-
-                if (userOptional.isPresent() && jwtService.validateToken(jwt)) {
-
-                    User user = userOptional.get(); // ได้อ็อบเจ็กต์ User แล้ว
-
-                    // 9. ⭐️⭐️⭐️ สร้าง Token โดยยัด "อ็อบเจ็กต์ User" เข้าไปแทน "String username" ⭐️⭐️⭐️
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            user, // <-- ใส่ "user" (อ็อบเจ็กต์) เป็น Principal
+                            username,
                             null,
-                            new ArrayList<>() // หรือ user.getAuthorities() ถ้าคุณทำ Role
+                            new ArrayList<>()
                     );
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    // Store userId in request attribute for controllers to use
+                    request.setAttribute("userId", userId);
 
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
