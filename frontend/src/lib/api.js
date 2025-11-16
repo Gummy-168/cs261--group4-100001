@@ -1,4 +1,4 @@
-﻿import axiosInstance, { API_BASE_URL } from './axiosInstance';
+import axiosInstance, { API_BASE_URL } from './axiosInstance';
 import { getAllEventCards, getEventCardsForUser, getAllEventCardsForAdmin } from '../services/eventService';
 import { addFavorite, removeFavorite } from '../services/favoriteService';
 import Show from "../assets/img/Show.png";
@@ -174,8 +174,9 @@ export async function fetchHomeDataForStaff(token, userId = null) {
  * @param {number} userId - User ID
  */
 export async function updateFavoriteEvent(eventId, liked, token, userId) {
+  // ⭐️ เรายังเช็ค userId ตรงนี้ได้ (ถ้าอยาก)
   if (!userId) {
-    console.error("[updateFavoriteEvent] userId is required");
+    console.error("[updateFavoriteEvent] userId is required (for client check)");
     return { ok: false, error: "User ID is required" };
   }
 
@@ -183,9 +184,13 @@ export async function updateFavoriteEvent(eventId, liked, token, userId) {
     console.log("?? Updating favorite:", { eventId, nextState: liked, userId });
 
     if (liked) {
-      await addFavorite(userId, eventId);
+      // ⭐️ [จุดแก้ที่ 1] ⭐️
+      // ลบ userId ออกจากการเรียก
+      await addFavorite(eventId);
     } else {
-      await removeFavorite(userId, eventId);
+      // ⭐️ [จุดแก้ที่ 2] ⭐️
+      // ลบ userId ออกจากการเรียก
+      await removeFavorite(eventId);
     }
 
     console.log("? Favorite updated successfully");
