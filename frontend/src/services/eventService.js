@@ -152,3 +152,22 @@ export const deleteEvent = async (eventId) => {
     throw new Error(error.message || 'ไม่สามารถลบกิจกรรมได้');
   }
 };
+
+/**
+ * ⭐️ ใหม่: ค้นหากิจกรรมตามเงื่อนไข (เรียก Backend /api/events/search)
+ * @param {object} searchParams - อ็อบเจกต์ของ query parameters
+ * เช่น { keyword: '...', category: '...', location: '...', startTime: '...', endTime: '...', sortBy: '...' }
+ * @returns {Promise<Array>} รายการ Events ที่ตรงเงื่อนไข
+ */
+export const searchEvents = async (searchParams) => {
+  try {
+    // ส่ง { params: searchParams } เพื่อให้ axios สร้าง query string
+    // เช่น /api/events/search?keyword=test&category=วิชาการ
+    // (หมายเหตุ: Endpoint ใน Controller ของคุณคือ /api/events/search)
+    const response = await axiosInstance.get('/events/search', { params: searchParams });
+    return response.data;
+  } catch (error) {
+    console.error('Error searching events:', error);
+    throw new Error(error.response?.data?.message || error.message || 'ไม่สามารถค้นหากิจกรรมได้');
+  }
+};
