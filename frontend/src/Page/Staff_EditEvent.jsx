@@ -6,6 +6,8 @@ import { THEME, FLAGS } from "../theme";
 import StaffConfirmPopup from "../components/Staff_ConfirmPopup";
 import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
 import { updateEvent } from "../services/eventService"; // ✅ เพิ่ม import
+import { uploadImage } from "../services/imageService";
+import toast from "react-hot-toast";
 
 // --- helpers -------------------------------------------------
 
@@ -185,33 +187,63 @@ export default function StaffEditEventPage({ navigate, auth, data, eventId, requ
 
   // --- submit (now saves to backend) -------------------------
   const doSave = async () => {
-    try {
-      const payload = {
-        ...event,
-        title: form.title.trim(),
-        category: form.category.trim(),
-        startTime: buildStartISO(startISO, form.date, form.time),
-        maxCapacity: form.capacity.trim() === "" ? null : Number(form.capacity.trim()),
-        location: form.location.trim(),
-        contact: form.contact.trim(),
-        description: form.description.trim(),
-        website: form.website.trim(),
-        isPublic: form.isPublic,
-        coverPreview: previewImage,
-      };
-      
-      console.log("📌 Saving event:", payload);
-      
-      await updateEvent(event.id, payload);
-      
-      alert("✅ บันทึกการแก้ไขสำเร็จ!");
-      navigate("/staff/myActivities");
-      
-    } catch (error) {
-      console.error("❌ Error saving event:", error);
-      alert("เกิดข้อผิดพลาด: " + (error.message || "ไม่สามารถบันทึกได้"));
+  try {
+    let finalImageUrl = previewImage; // ใช้รูปเดิม (หรือ null) เป็นค่าเริ่มต้น
+
+    // 1. ตรวจสอบว่ามี "ไฟล์ใหม่" ที่ถูกเลือกหรือไม่
+    if (imageFile) { 
+      toast.loading('กำลังอัปโหลดรูปภาพใหม่...');
+      try {
+        const uploadResponse = await uploadImage(imageFile); // ⭐️ อัปโหลดไฟล์
+        if (uploadResponse && uploadResponse.imageUrl) {
+          finalImageUrl = uploadResponse.imageUrl; // ⭐️ ได้ URL ใหม่
+          toast.dismiss();
+          toast.success('อัปโหลดรูปใหม่สำเร็จ!');
+        } else {
+          throw new Error('ไม่ได้รับ URL รูปภาพจาก Server');
+        }
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.dismiss();
+        toast.error(`อัปโหลดรูปใหม่ไม่สำเร็จ: ${uploadError.message}`);
+        return; // หยุดการบันทึกถ้าอัปโหลดไม่ผ่าน
+      }
     }
-  };
+
+    // 2. สร้าง payload เพื่อส่งไป update
+    const payload = {
+      ...event,
+      title: form.title.trim(),
+      category: form.category.trim(),
+      startTime: buildStartISO(startISO, form.date, form.time),
+      maxCapacity: form.capacity.trim() === "" ? null : Number(form.capacity.trim()),
+      location: form.location.trim(),
+      contact: form.contact.trim(),
+      description: form.description.trim(),
+      website: form.website.trim(),
+      isPublic: form.isPublic,
+
+      // ⭐️ เปลี่ยนจาก coverPreview เป็น imageUrl
+      // coverPreview: previewImage, (บรรทัดเดิม)
+      imageUrl: finalImageUrl, // ⭐️ (บรรทัดใหม่)
+    };
+
+    console.log("📌 Saving event:", payload);
+
+    // 3. เรียก updateEvent (เหมือนเดิม)
+    await updateEvent(event.id, payload);
+
+    alert("✅ บันทึกการแก้ไขสำเร็จ!");
+    navigate("/staff/myActivities");
+
+  } catch (error) {
+    console.error("❌ Error saving event:", error);
+    // (จัดการ error อื่นๆ ถ้ามี)
+    if (!String(error.message).includes('อัปโหลดรูปใหม่ไม่สำเร็จ')) {
+       alert("เกิดข้อผิดพลาด: " + (error.message || "ไม่สามารถบันทึกได้"));
+    }
+  }
+};
 
   const handleClickCancel = () => setConfirmType("cancel");
   const handleClickSave = () => setConfirmType("save");
