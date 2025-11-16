@@ -67,8 +67,8 @@ function ProfileSection({ auth }) {
   const adminLocked = isAdmin(auth);
   const [draft, setDraft] = useState({
     displaynameTh: saved.displaynameTh ?? "",
-    studentId: saved.studentId ?? "xxxx xxxxxxxx",
-    email: saved.email ?? "xxxx xxxxxxxx",
+    username: saved.username ?? "",
+    email: saved.email ?? "",
   });
   const [avatarSaved, setAvatarSaved] = useState(saved.avatarUrl || "");
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -77,11 +77,11 @@ function ProfileSection({ auth }) {
   useEffect(() => {
     setDraft({
       displaynameTh: saved.displaynameTh ?? "",
-      studentId: saved.studentId ?? "xxxx xxxxxxxx",
-      email: saved.email ?? "xxxx xxxxxxxx",
+      username: saved.username ?? "",
+      email: saved.email ?? "",
     });
     setAvatarSaved(saved.avatarUrl || "");
-  }, [saved.displaynameTh, saved.studentId, saved.email, saved.avatarUrl]);
+  }, [saved.displaynameTh, saved.username, saved.email, saved.avatarUrl]);
   useEffect(() => {
     if (adminLocked) {
       setEdit(false);
@@ -110,8 +110,8 @@ function ProfileSection({ auth }) {
     setAvatarPreview("");
     setDraft({
       displaynameTh: saved.displaynameTh ?? "",
-      studentId: saved.studentId ?? "xxxx xxxxxxxx",
-      email: saved.email ?? "xxxx xxxxxxxx",
+      username: saved.username ?? "",
+      email: saved.email ?? "",
     });
   };
 
@@ -119,7 +119,7 @@ function ProfileSection({ auth }) {
     const next = {
       ...(auth.profile ?? {}),
       displaynameTh: draft.displaynameTh,
-      studentId: draft.studentId,
+      username: draft.username,
       email: draft.email,
       avatarUrl: avatarPreview ? avatarPreview : avatarSaved,
     };
@@ -200,18 +200,18 @@ function ProfileSection({ auth }) {
         <div className="col-span-12 md:col-span-7">
           <Field
             label="รหัสนักศึกษา"
-            value={draft.studentId}
-            onChange={(v) => setDraft((s) => ({ ...s, studentId: v }))}
-            readOnly={!edit}
-            placeholder="xxxx xxxxxxxx"
+            value={draft.username}
+            onChange={(v) => setDraft((s) => ({ ...s, username: v }))}
+            readOnly
+            placeholder=""
           />
           <div className="mt-4">
             <Field
               label="อีเมล"
               value={draft.email}
               onChange={(v) => setDraft((s) => ({ ...s, email: v }))}
-              readOnly={!edit}
-              placeholder="xxxx xxxxxxxx"
+              readOnly
+              placeholder=""
             />
           </div>
         </div>
