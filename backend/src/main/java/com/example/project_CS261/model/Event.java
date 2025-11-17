@@ -44,7 +44,6 @@ public class Event {
     @Column
     private Double fee = 0.0;
 
-    @JsonProperty("coverUrl")  // 👈 บอกว่าตอนส่ง JSON ให้ใช้ชื่อนี้ (ที่ React ต้องการ)
     @Column(columnDefinition = "NVARCHAR(500)",name = "imageUrl")
     private String imageUrl;
 

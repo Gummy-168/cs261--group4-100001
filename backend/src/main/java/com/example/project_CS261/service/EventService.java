@@ -291,7 +291,10 @@ public class EventService {
         String imageUrl = event.getImageUrl();
         // เช็คว่า imageUrl ไม่ null, ไม่ใช่ "http" (เผื่อเป็น URL เต็มอยู่แล้ว), และไม่ใช่ "data:image" (เผื่อเป็น Base64)
         if (imageUrl != null && !imageUrl.startsWith("http") && !imageUrl.startsWith("data:image")) {
-            event.setImageUrl(baseUrl + imageUrl);
+
+            // ⭐️⭐️⭐️ [นี่คือจุดที่แก้ไข] ⭐️⭐️⭐️
+            // เติม "/" เข้าไปคั่นกลางระหว่าง baseUrl และ imageUrl
+            event.setImageUrl(baseUrl + "/" + imageUrl);
         }
     }
 

@@ -12,5 +12,5 @@ public class EventUpdateRequest {
     public Integer reserved;
     public String posterUrl;
     public String registerUrl;
-    private String imageurl;
+    private String imageUrl;
 }
