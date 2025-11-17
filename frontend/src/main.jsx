@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
+import { BrowserRouter } from "react-router-dom";
 
 // lib
 import { usePath } from "./lib/router";
@@ -57,7 +58,7 @@ function App() {
   const { path, navigate } = usePath();
   const auth = useAuthStore();
   const forceStaffHome = import.meta.env.VITE_FORCE_STAFF_HOME === "true";
-  // useMockLogin(auth); // comment this line in production
+  //useMockLogin(auth); // comment this line in production
 
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
   const [homeData, setHomeData] = useState(null);
@@ -198,10 +199,12 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
+    <BrowserRouter>
     <ErrorBoundary>
       <ThemeProvider>
         <App />
       </ThemeProvider>
     </ErrorBoundary>
+    </BrowserRouter>
   </React.StrictMode>
 );
