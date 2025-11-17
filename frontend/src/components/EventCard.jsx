@@ -41,8 +41,8 @@ export default function EventCard({ e, loggedIn, onToggle, onRequireLogin, onOpe
     >
       <div className="relative overflow-hidden rounded-[20px] bg-gray-100">
         <div className="aspect-[4/3] w-full">
-          {e.coverUrl ? (
-            <img src={e.coverUrl} alt={e.title} className="h-full w-full object-cover" loading="lazy" />
+          {e.imageUrl ? (
+            <img src={e.imageUrl} alt={e.title} className="h-full w-full object-cover" loading="lazy" />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-400">
               <svg viewBox="0 0 24 24" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth="1.5">
