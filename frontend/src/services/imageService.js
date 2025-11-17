@@ -72,8 +72,8 @@ export const getImageUrl = (filename) => {
   // ถ้าเป็น path ที่เริ่มด้วย /images/ ให้ใช้ backend base URL
   if (filename.startsWith('/images/')) {
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
-    const backendBaseUrl = baseURL.replace('/api', '');
-    return `${backendBaseUrl}${filename}`;
+    //const backendBaseUrl = baseURL.replace('/api', '');
+    return `${baseURL}/images/${filename}`;
   }
   
   // ถ้าเป็นแค่ชื่อไฟล์ ให้เพิ่ม path
