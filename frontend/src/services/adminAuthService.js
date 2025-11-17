@@ -25,10 +25,10 @@ export async function adminLogin(email, password, remember = true) {
 
     if (data.token) {
       const storage = remember ? localStorage : sessionStorage;
-      storage.setItem("authToken", data.token);
+      storage.setItem("token", data.token);
       const adminId = data.adminId ?? data.userId;
       if (adminId) {
-        localStorage.setItem("userId", adminId.toString());
+        localStorage.setItem("adminId", adminId.toString());
       }
       
       // เก็บ faculty ด้วย
@@ -38,12 +38,12 @@ export async function adminLogin(email, password, remember = true) {
     }
 
     if (data.email || normalizedEmail) {
-      localStorage.setItem("adminEmail", (data.email || normalizedEmail).toLowerCase());
+      localStorage.setItem("email", (data.email || normalizedEmail).toLowerCase());
     }
     
     // เก็บ role ด้วย
     if (data.role) {
-      localStorage.setItem("adminRole", data.role);
+      localStorage.setItem("role", data.role);
     }
 
     return data;
