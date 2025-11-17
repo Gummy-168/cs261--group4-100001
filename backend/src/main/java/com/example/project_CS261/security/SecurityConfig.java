@@ -28,54 +28,58 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // --------------------------------------------------------------------
-                        // 1. ENDPOINTS สาธารณะ (ไม่ต้อง Login)
-                        // --------------------------------------------------------------------
-
-                        // การ Login
+                        // Public endpoints - ไม่ต้อง login
                         .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/admin/login").permitAll()
+                        .requestMatchers("/api/admin/login").permitAll()  // Admin login ต้อง public
 
-                        // Swagger Docs
+
+                        // Events - Public (ดูได้ไม่ต้อง login)
+                        .requestMatchers("/api/events", "/api/events/{id}", "/api/events/cards/**", "/api/events/search/**", "/api/events/category/**").permitAll()
+
+                        // Favorite user ดูได้
+                        .requestMatchers("/api/favorites/**").authenticated()
+
+                        // Images - Public
+                        .requestMatchers("/api/images/**", "/images/**", "/static/**").permitAll()
+
+
+                        // Swagger UI - Public
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/swagger-ui.html").permitAll()
 
-                        // การ "ดู" (GET) ข้อมูลสาธารณะ
-                        .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/{id}", "/api/events/cards/**", "/api/events/search/**", "/api/events/category/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/events/popularity/**").permitAll()
-                        // ⭐️ นี่คือข้อที่ทำให้รูปแสดงได้: อนุญาตให้ "ทุกคน" (GET) ดูรูปได้
-                        .requestMatchers(HttpMethod.GET, "/api/images/**", "/images/**", "/static/**").permitAll()
 
-                        // --------------------------------------------------------------------
-                        // 2. USER ENDPOINTS (ต้อง Login ด้วย Token ผู้ใช้ทั่วไป)
-                        // --------------------------------------------------------------------
+                        // Event Popularity - Public
+                        .requestMatchers("/api/events/popularity/**").permitAll()
+
+
+                        // ทางด่วน Admin
+                        .requestMatchers(HttpMethod.POST, "/api/events").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/events/{id}").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/admin/events/{eventId}/participants/upload").permitAll()
+
+
+                        // Protected endpoints - ต้อง login
+                        // Favorites
                         .requestMatchers("/api/favorites/**").authenticated()
+
+
+                        // Participants
                         .requestMatchers("/api/participants/**").authenticated()
+
+
+                        // Notifications
                         .requestMatchers("/api/notifications/**").authenticated()
+
+
+                        // Feedback
                         .requestMatchers("/api/feedback/**").authenticated()
 
-                        // --------------------------------------------------------------------
-                        // 3. ADMIN ENDPOINTS (ต้องมี Role "ADMIN")
-                        // --------------------------------------------------------------------
-                        // ⭐️ [แก้ไข] เปลี่ยนจาก .permitAll() เป็น .hasRole("ADMIN") ทั้งหมด
-                        .requestMatchers(HttpMethod.POST, "/api/events").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/events/{id}").hasRole("ADMIN") // ⭐️ [เพิ่ม] การแก้ไข (PUT) ก็ควรเป็น Admin
-                        .requestMatchers(HttpMethod.DELETE, "/api/events/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/admin/events/{eventId}/participants/upload").hasRole("ADMIN")
 
-                        // ⭐️⭐️⭐️ [จุดที่แก้ปัญหา] เพิ่มกฎสำหรับ Admin อัพโหลด/ลบรูป ⭐️⭐️⭐️
-                        .requestMatchers(HttpMethod.POST, "/api/images/upload").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/images/**").hasRole("ADMIN")
+                        // Admin endpoints - ต้องเป็น Admin (Coming soon)
+                        // .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // ⭐️ [เปิดใช้งาน] กฎสำหรับ Admin ที่เหลือ
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        // --------------------------------------------------------------------
-                        // 4. กฎข้อสุดท้าย
-                        // --------------------------------------------------------------------
-                        // Request อื่นๆ ที่ไม่เข้าเงื่อนไขข้างบนเลย ต้อง Login (เช่น /api/user/me)
+                        // All other requests require authentication
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
