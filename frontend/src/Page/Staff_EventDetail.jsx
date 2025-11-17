@@ -6,6 +6,7 @@ import { THEME, FLAGS } from "../theme";
 import StaffConfirmPopup from "../components/Staff_ConfirmPopup";
 import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
 import { uploadParticipantsList } from "../services/participantService";
+import { deleteEvent } from "../services/eventService"; // 👈 เพิ่มบรรทัดนี้
 
 // --- helpers -------------------------------------------------
 function combineEventSources(data, eventId) {
@@ -181,11 +182,26 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
   const readerHref = `/staff/events/${encodeURIComponent(event.id)}/reader`;
   const editHref = `/staff/events/${encodeURIComponent(event.id)}/edit`;
 
-  const handleConfirmDelete = () => {
-    // TODO: hook real API
-    console.log("TODO: delete event id =", event.id);
-    setError("ฟังก์ชันลบกิจกรรมยังไม่ถูกเชื่อมต่อกับระบบจริง");
-    setDeleteOpen(false);
+  const handleConfirmDelete = async () => {
+    setDeleteOpen(false); // ปิด popup ก่อน เพื่อให้ UI ตอบสนองทันที
+    try {
+      // 1. เรียก API เพื่อลบกิจกรรมโดยใช้ ID จาก event object
+      await deleteEvent(event.id); 
+      console.log("Event deleted successfully, id =", event.id);
+      
+      // 2. ล้างค่า error หากการลบสำเร็จ
+      setError(null); 
+      
+      // 3. นำทางผู้ใช้กลับไปหน้ารายการกิจกรรมของ staff
+      //    (ใช้ /staff/myActivities ตาม logic ของปุ่ม "กลับ" และ "Activities" ใน Header)
+      navigate("/staff/myActivities"); 
+
+    } catch (err) {
+      // 4. หากเกิดข้อผิดพลาด
+      console.error("Failed to delete event:", err);
+      //    แสดงข้อความ error ให้ผู้ใช้เห็น
+      setError(err.message || "ลบกิจกรรมไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
   };
 
   const rows = [
