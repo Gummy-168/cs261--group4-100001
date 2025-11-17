@@ -132,9 +132,9 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
             <article className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-sm ">
               <div className="relative bg-black/5">
                 <div className="aspect-[4/2.5] w-full">
-                  {event.coverUrl ? (
+                  {event.imageUrl ? (
                     <img
-                      src={event.coverUrl}
+                      src={event.imageUrl}
                       alt={event.title}
                       className="h-full w-full object-cover"
                       loading="lazy"
