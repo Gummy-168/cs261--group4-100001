@@ -134,7 +134,11 @@ public class JwtService {
         }
     }
 
+    /**
+     * ⭐️ [แก้ไข] ⭐️
+     * แก้ไขฟังก์ชันนี้ให้เรียกใช้ validateToken(token) ด้านบน
+     */
     public boolean isTokenValid(String token) {
-        return false;
+        return validateToken(token); // <--- แก้จาก 'return false;' เป็น 'return validateToken(token);'
     }
 }
