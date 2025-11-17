@@ -224,8 +224,8 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
               {/* ซ้าย: รูปกิจกรรม */}
               <div className="space-y-4">
                 <div className="rounded-2xl bg-gray-100 overflow-hidden aspect-[5/3] flex items-center justify-center">
-                  {event.coverUrl ? (
-                    <img src={event.coverUrl} alt={event.title} className="h-full w-full object-cover" loading="lazy" />
+                  {event.imageUrl ? (
+                    <img src={event.imageUrl} alt={event.title} className="h-full w-full object-cover" loading="lazy" />
                   ) : (
                     <div className="text-center text-gray-500 text-sm">
                       <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-gray-400">
