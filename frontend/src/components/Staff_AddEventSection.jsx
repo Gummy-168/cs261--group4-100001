@@ -1,8 +1,12 @@
+// src/components/Staff_AddEventSection.jsx (แก้ไขแล้ว)
+
 import React, { useState } from "react";
 import { createEvent } from "../services/eventService";
+import { uploadImage } from "../services/imageService"; // ⭐️ [FIX 1] Import service
 import toast from "react-hot-toast";
 
 function ImageUploader({ preview, onPick, onClear, alt }) {
+  // ... (ส่วนนี้เหมือนเดิม ไม่ต้องแก้ไข) ...
   return (
     <div className="relative group rounded-2xl bg-gray-100 overflow-hidden aspect-[5/3] flex items-center justify-center">
       {preview ? (
@@ -50,6 +54,7 @@ export default function StaffAddEventSection({ onEventAdded }) {
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [seatCount, setSeatCount] = useState("");
   const [previewImage, setPreviewImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null); // ⭐️ [FIX 2] เพิ่ม State เก็บ File
   const [submitting, setSubmitting] = useState(false);
 
   const inputClass =
@@ -58,12 +63,20 @@ export default function StaffAddEventSection({ onEventAdded }) {
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    setImageFile(file); // ⭐️ [FIX 3] เก็บ File object
+
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPreviewImage(reader.result);
+      setPreviewImage(reader.result); // เก็บ Base64 ไว้โชว์
       e.target.value = ""; // allow re-select same file
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleClearImage = () => {
+    setPreviewImage(null);
+    setImageFile(null); // ⭐️ [FIX 4] ล้าง File object ด้วย
   };
 
   const handleSeatChange = (e) => {
@@ -77,12 +90,42 @@ export default function StaffAddEventSection({ onEventAdded }) {
     
     if (submitting) return;
     
+    setSubmitting(true);
+
     const form = e.target;
+    let finalRelativePath = null; // ⭐️ [FIX 5] เตรียมตัวแปรเก็บ Path รูปภาพ
+
+    // ⭐️ [FIX 6] อัปโหลดรูปภาพก่อน (ถ้ามี)
+    if (imageFile) {
+      toast.loading('กำลังอัปโหลดรูปภาพ...');
+      try {
+        const uploadResponse = await uploadImage(imageFile);
+        
+        if (uploadResponse && uploadResponse.imageUrl) {
+          let path = uploadResponse.imageUrl; // e.g., /api/images/new.png
+          if (path.startsWith('/')) {
+            path = path.substring(1); // e.g., api/images/new.png
+          }
+          finalRelativePath = path;
+          toast.dismiss();
+          toast.success('อัปโหลดรูปสำเร็จ!');
+        } else {
+          throw new Error('ไม่ได้รับ "imageUrl" รูปภาพจาก Server');
+        }
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.dismiss();
+        toast.error(`อัปโหลดรูปไม่สำเร็จ: ${uploadError.message}`);
+        setSubmitting(false); // หยุดการ submit
+        return; 
+      }
+    }
     
     // ดึง admin email จาก localStorage
     const adminEmail = localStorage.getItem('adminEmail');
     if (!adminEmail) {
       toast.error('ไม่พบข้อมูล Admin กรุณา Login ใหม่');
+      setSubmitting(false);
       return;
     }
     
@@ -90,16 +133,17 @@ export default function StaffAddEventSection({ onEventAdded }) {
     const eventDateTime = form.eventDateTime.value;
     if (!eventDateTime) {
       toast.error('กรุณาระบุวันเวลากิจกรรม');
+      setSubmitting(false);
       return;
     }
     
-    // สร้าง payload ตาม format ของ Backend
+    // ⭐️ [FIX 7] สร้าง payload พร้อม imageUrl ที่ได้จากการอัปโหลด
     const payload = {
       title: form.title.value,
       description: form.description.value,
       location: form.location.value,
       startTime: eventDateTime, // Backend รับ LocalDateTime format
-      endTime: eventDateTime, // ใช้เวลาเดียวกันก่อน (หรืออาจเพิ่ม input สำหรับ endTime)
+      endTime: eventDateTime, // ใช้เวลาเดียวกันก่อน
       category: form.category.value,
       organizer: form.contact.value, // ใช้ contact เป็น organizer
       maxCapacity: isUnlimited ? 999999 : (seatCount ? Number(seatCount) : 0),
@@ -107,10 +151,8 @@ export default function StaffAddEventSection({ onEventAdded }) {
       status: 'OPEN',
       fee: 0.0,
       isPublic: false, // ตั้งเป็น Draft ก่อน
-      // imageUrl: อาจต้อง upload รูปก่อน
+      imageUrl: finalRelativePath, // ⭐️ ส่ง Path ที่ถูกต้อง (หรือ null ถ้าไม่มี)
     };
-    
-    setSubmitting(true);
     
     try {
       await createEvent(payload);
@@ -119,19 +161,21 @@ export default function StaffAddEventSection({ onEventAdded }) {
       // Reset form
       form.reset();
       setPreviewImage(null);
+      setImageFile(null); // ⭐️ [FIX 8] Reset File object
       setSeatCount("");
       setIsUnlimited(false);
       
-      // ถ้ามี callback จาก parent ให้เรียก
       if (onEventAdded) {
         onEventAdded();
       } else {
-        // ถ้าไม่มี ให้ reload หน้า
         setTimeout(() => window.location.reload(), 1000);
       }
     } catch (error) {
       console.error('Submit error:', error);
-      toast.error(error.message || 'ไม่สามารถเพิ่มกิจกรรมได้');
+      toast.dismiss(); // เผื่อ toast loading ค้าง
+      if (!String(error.message).includes('อัปโหลดรูปไม่สำเร็จ')) {
+          toast.error(error.message || 'ไม่สามารถเพิ่มกิจกรรมได้');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -139,16 +183,22 @@ export default function StaffAddEventSection({ onEventAdded }) {
 
   return (
     <section id="staff-add-event" className="rounded-[28px] border border-black/5 bg-white px-8 py-8 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
-      <h2 className="text-2xl font-semibold text-gray-900 mb-4">เพิ่มกิจกรรม</h2>
+      <h2 className="text-2xl font.semibold text-gray-900 mb-4">เพิ่มกิจกรรม</h2>
 
       <form onSubmit={handleSubmit} className="mt-2 grid gap-8 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)] items-start">
         {/* Left: image + inputs */}
         <div className="space-y-4">
-          <ImageUploader preview={previewImage} onPick={handleImageChange} onClear={() => setPreviewImage(null)} alt="ภาพกิจกรรม" />
+          <ImageUploader 
+            preview={previewImage} 
+            onPick={handleImageChange} 
+            onClear={handleClearImage} // ⭐️ [FIX 9] ใช้ onClear ที่แก้ไขแล้ว
+            alt="ภาพกิจกรรม" 
+          />
 
+          {/* ... (ส่วน input ที่เหลือเหมือนเดิม) ... */}
           <div className="space-y-3">
-            <input type="datetime-local" name="eventDateTime" id="eventDateTime" className={inputClass} placeholder="วันเวลากิจกรรม" />
-            <input type="text" name="location" placeholder="สถานที่จัดกิจกรรม" className={inputClass} />
+            <input type="datetime-local" name="eventDateTime" id="eventDateTime" className={inputClass} placeholder="วันเวลากิจกรรม" required />
+            <input type="text" name="location" placeholder="สถานที่จัดกิจกรรม" className={inputClass} required />
 
             <div className="flex items-center gap-3">
               <input type="number" min="0" name="seats" value={seatCount} onChange={handleSeatChange} placeholder="จำนวนที่นั่ง" disabled={isUnlimited} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-400`} />
@@ -166,11 +216,11 @@ export default function StaffAddEventSection({ onEventAdded }) {
         {/* Right: title + category + description + submit */}
         <div className="flex flex-col h-full">
           <div className="flex flex-col gap-3 md:flex-row">
-            <input type="text" name="title" placeholder="ชื่อกิจกรรม" className={inputClass + " flex-1"} />
-            <input type="text" name="category" placeholder="ประเภทกิจกรรม" className={inputClass + " flex-1"} />
+            <input type="text" name="title" placeholder="ชื่อกิจกรรม" className={inputClass + " flex-1"} required />
+            <input type="text" name="category" placeholder="ประเภทกิจกรรม" className={inputClass + " flex-1"} required />
           </div>
 
-          <textarea name="description" placeholder="คำบรรยายรายละเอียดกิจกรรม" className="mt-4 flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm resize-none min-h-[220px] focus:outline-none focus:ring-2 focus:ring-[#e84c3d]/40" />
+          <textarea name="description" placeholder="คำบรรยายรายละเอียดกิจกรรม" className="mt-4 flex-1 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm resize-none min-h-[220px] focus:outline-none focus:ring-2 focus:ring-[#e84c3d]/40" required />
 
           <div className="mt-4 flex justify-end">
             <button 
