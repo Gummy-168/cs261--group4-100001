@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { createEvent } from "../services/eventService";
 import { uploadImage } from "../services/imageService"; // ⭐️ [FIX 1] Import service
+import { normalizeImagePath } from "../lib/imagePath";
 import toast from "react-hot-toast";
 
 function ImageUploader({ preview, onPick, onClear, alt }) {
@@ -102,11 +103,11 @@ export default function StaffAddEventSection({ onEventAdded }) {
         const uploadResponse = await uploadImage(imageFile);
         
         if (uploadResponse && uploadResponse.imageUrl) {
-          let path = uploadResponse.imageUrl; // e.g., /api/images/new.png
-          if (path.startsWith('/')) {
-            path = path.substring(1); // e.g., api/images/new.png
+          const normalizedPath = normalizeImagePath(uploadResponse.imageUrl);
+          if (!normalizedPath) {
+            throw new Error('ไม่สามารถประมวลผลเส้นทางรูปภาพที่อัปโหลดได้');
           }
-          finalRelativePath = path;
+          finalRelativePath = normalizedPath;
           toast.dismiss();
           toast.success('อัปโหลดรูปสำเร็จ!');
         } else {

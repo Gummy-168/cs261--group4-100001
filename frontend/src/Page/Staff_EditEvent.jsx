@@ -7,6 +7,7 @@ import StaffConfirmPopup from "../components/Staff_ConfirmPopup";
 import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
 import { updateEvent } from "../services/eventService"; // ✅ เพิ่ม import
 import { uploadImage } from "../services/imageService";
+import { normalizeImagePath } from "../lib/imagePath";
 import toast from "react-hot-toast";
 
 // --- helpers -------------------------------------------------
@@ -200,13 +201,11 @@ export default function StaffEditEventPage({ navigate, auth, data, eventId, requ
 
           // [FIX 2] ตรวจสอบ "imageUrl" (Path) ที่ได้กลับมา ไม่ใช่ "filename"
           if (uploadResponse && uploadResponse.imageUrl) {
-            let path = uploadResponse.imageUrl; // ได้ "/api/images/new-file.png"
-            
-            // [FIX 3] แปลงเป็น Path ที่ Backend ต้องการ (ไม่มี / นำหน้า)
-            if (path.startsWith('/')) {
-              path = path.substring(1); // "api/images/new-file.png"
+            const normalizedPath = normalizeImagePath(uploadResponse.imageUrl);
+            if (!normalizedPath) {
+              throw new Error('ไม่สามารถประมวลผลเส้นทางรูปภาพที่อัปโหลดได้');
             }
-            finalRelativePath = path;
+            finalRelativePath = normalizedPath;
             
             toast.dismiss();
             toast.success('อัปโหลดรูปใหม่สำเร็จ!');
@@ -223,20 +222,11 @@ export default function StaffEditEventPage({ navigate, auth, data, eventId, requ
       // 2. ถ้า "ไม่มีไฟล์ใหม่" ให้ตรวจสอบว่า "เก็บรูปเดิม" หรือ "ลบรูป"
       else if (previewImage) { 
         // (ผู้ใช้ไม่ได้เลือกไฟล์ใหม่ แต่ยังมีรูปเก่าคาอยู่ = เก็บรูปเดิม)
-        // แปลง URL เต็ม (http://.../api/images/old.png) กลับเป็น Path ที่ Backend ต้องการ
-        try {
-          const url = new URL(previewImage);
-          let path = url.pathname; // "/api/images/old.png"
-          if (path.startsWith('/')) {
-            path = path.substring(1);
-          }
-          finalRelativePath = path; // "api/images/old.png"
-        } catch (e) {
-          console.error("ไม่สามารถแปลง URL รูปเก่า:", previewImage, e);
-          // ลองตรวจสอบว่ามันเป็น Path ที่ถูกต้องอยู่แล้วหรือไม่
-          if (!previewImage.startsWith('http') && previewImage.includes('/')) {
-             finalRelativePath = previewImage;
-          }
+        const normalizedPath = normalizeImagePath(previewImage);
+        if (normalizedPath) {
+          finalRelativePath = normalizedPath;
+        } else {
+          console.warn("ไม่สามารถแปลง URL รูปเก่า:", previewImage);
         }
       } 
       // 3. ถ้า imageFile = null และ previewImage = null (ผู้ใช้กดลบรูป)

@@ -4,6 +4,7 @@ import { addFavorite, removeFavorite } from '../services/favoriteService';
 import Show from "../assets/img/Show.png";
 import Welcome from "../assets/img/Welcom.png";
 import Welcome2 from "../assets/img/Welcome2.png";
+import { normalizeImagePath } from "./imagePath";
 
 const mockHome = {
   hero: {
@@ -64,31 +65,16 @@ function transformEventToFrontend(event) {
   let correctImageUrl = null;
   
   if (event.imageUrl) {
-    let filename = event.imageUrl; // เริ่มต้นโดยคิดว่ามันคือชื่อไฟล์
-
-    // Case 1: ถ้าเป็น URL เต็ม (http...) อยู่แล้ว ใช้ได้เลย
-    if (filename.startsWith('http')) {
-      correctImageUrl = filename;
-    } 
-    // Case 2: [FIX] ถ้าเป็น Path ที่มี /api/images/ ซ้ำซ้อนติดมา
-    else if (filename.includes('/api/images/')) {
-      // ให้สกัดเอาเฉพาะชื่อไฟล์ (ส่วนสุดท้าย)
-      filename = filename.split('/').pop();
-      correctImageUrl = `${API_BASE_URL}/images/${filename}`;
-    }
-    // Case 3: ถ้าเป็น Path เก่า (http://.../images/events/...)
-    else if (filename.includes('/images/events/')) {
-      // ให้สกัดเอาเฉพาะชื่อไฟล์
-      filename = filename.split('/').pop();
-      correctImageUrl = `${API_BASE_URL}/images/${filename}`;
-    }
-    // Case 4: ถ้าเป็นแค่ชื่อไฟล์ (ข้อมูลใหม่) หรือมี / นำหน้า
-    else {
-      // (ป้องกันกรณีชื่อไฟล์มี / นำหน้า เช่น /abc.png)
-      if (filename.startsWith('/')) {
-        filename = filename.substring(1);
+    if (typeof event.imageUrl === "string" && event.imageUrl.startsWith("http")) {
+      correctImageUrl = event.imageUrl;
+    } else {
+      const normalizedPath = normalizeImagePath(event.imageUrl);
+      if (normalizedPath) {
+        const filename = normalizedPath.split("/").pop();
+        if (filename) {
+          correctImageUrl = `${API_BASE_URL}/images/${filename}`;
+        }
       }
-      correctImageUrl = `${API_BASE_URL}/images/${filename}`;
     }
   }
 
