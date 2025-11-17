@@ -14,19 +14,25 @@ const axiosInstance = axios.create({
 // Request interceptor - Add JWT token to requests
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Check if admin token exists (for admin routes)
+    // ---
+    // โค้ดที่แก้ไข: เปลี่ยนตรรกะการแนบ Token
+    // ---
     const adminToken = localStorage.getItem('adminToken');
-    
-    // Otherwise use regular user token
     const userToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-    
-    // Prioritize admin token for /admin routes
-    if (config.url.includes('/admin') && adminToken) {
+
+    // ตรรกะใหม่:
+    // 1. ตรวจสอบ Admin Token ก่อนเสมอ
+    //    ถ้ามี adminToken ให้ใช้ Token นี้ทันทีสำหรับทุก Request
+    if (adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
-    } else if (userToken) {
+    } 
+    // 2. ถ้าไม่มี Admin Token (เช่น เป็น User ทั่วไป)
+    //    ให้ตรวจสอบและใช้ userToken แทน
+    else if (userToken) {
       config.headers.Authorization = `Bearer ${userToken}`;
     }
-    
+    // 3. ถ้าไม่มี Token ทั้งคู่ (เช่น หน้า Public) ก็จะไม่แนบ Header ไป
+
     return config;
   },
   (error) => {

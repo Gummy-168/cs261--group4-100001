@@ -28,12 +28,12 @@ export async function adminLogin(email, password, remember = true) {
       storage.setItem("token", data.token);
       const adminId = data.adminId ?? data.userId;
       if (adminId) {
-        localStorage.setItem("adminId", adminId.toString());
+        localStorage.setItem("id", adminId.toString());
       }
       
       // เก็บ faculty ด้วย
       if (data.faculty) {
-        localStorage.setItem("adminFaculty", data.faculty);
+        localStorage.setItem("faculty", data.faculty);
       }
     }
 

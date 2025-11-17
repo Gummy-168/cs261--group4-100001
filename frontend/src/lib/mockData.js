@@ -7,7 +7,7 @@ export const MOCK_EVENTS_WITH_REVIEWS = [
     startTime: "2024-12-01T10:00:00",
     endTime: "2029-12-01T16:00:00", // ENDED
     location: "SC1-306",
-    coverUrl: "https://picsum.photos/400/300?random=1",
+    imageUrl: "https://picsum.photos/400/300?random=1",
     liked: true,
     hasReviewed: false, // NEEDS REVIEW
     category: "วิชาการ",
@@ -29,7 +29,7 @@ export const MOCK_EVENTS_WITH_REVIEWS = [
     startTime: "2024-11-25T08:00:00",
     endTime: "2024-11-28T17:00:00", // ENDED
     location: "จังหวัดนครราชสีมา",
-    coverUrl: "https://picsum.photos/400/300?random=2",
+    imageUrl: "https://picsum.photos/400/300?random=2",
     liked: true,
     hasReviewed: false, // NEEDS REVIEW
     category: "กิจกรรมพิเศษ",
@@ -51,7 +51,7 @@ export const MOCK_EVENTS_WITH_REVIEWS = [
     startTime: "2025-01-15T09:00:00",
     endTime: "2025-01-15T18:00:00", // NOT ENDED YET
     location: "สนามกีฬา มธ.",
-    coverUrl: "https://picsum.photos/400/300?random=3",
+    imageUrl: "https://picsum.photos/400/300?random=3",
     liked: true,
     hasReviewed: false,
     category: "กีฬา",

@@ -10,8 +10,8 @@ export default function EventGrid({ events, onToggleFavorite }) {
           onClick={() => window.open(`/events/${e.id}`, '_blank')}
         >
           <div className="aspect-video bg-gray-100 flex items-center justify-center text-gray-500 text-sm dark:bg-gray-700">
-            {e.coverUrl ? (
-              <img src={e.coverUrl} alt={e.title} className="w-full h-full object-cover rounded-t-lg" />
+            {e.imageUrl ? (
+              <img src={e.imageUrl} alt={e.title} className="w-full h-full object-cover rounded-t-lg" />
             ) : (
               <span>ภาพไม่มีการจัดแสดงของอีเวนต์นี้</span>
             )}

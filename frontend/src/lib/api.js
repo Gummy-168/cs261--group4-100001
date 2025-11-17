@@ -57,15 +57,49 @@ const mockHome = {
 
 /**
  * แปลงข้อมูลจาก Backend เป็น format ที่ Frontend ต้องการ
+ * ⭐️ [รวมการแก้ไข] ⭐️ - แก้ไขการสร้าง URL รูปภาพให้เป็นมาตรฐานเดียว (รองรับทุกเคส)
  */
 function transformEventToFrontend(event) {
+  
+  let correctImageUrl = null;
+  
+  if (event.imageUrl) {
+    let filename = event.imageUrl; // เริ่มต้นโดยคิดว่ามันคือชื่อไฟล์
+
+    // Case 1: ถ้าเป็น URL เต็ม (http...) อยู่แล้ว ใช้ได้เลย
+    if (filename.startsWith('http')) {
+      correctImageUrl = filename;
+    } 
+    // Case 2: [FIX] ถ้าเป็น Path ที่มี /api/images/ ซ้ำซ้อนติดมา
+    else if (filename.includes('/api/images/')) {
+      // ให้สกัดเอาเฉพาะชื่อไฟล์ (ส่วนสุดท้าย)
+      filename = filename.split('/').pop();
+      correctImageUrl = `${API_BASE_URL}/images/${filename}`;
+    }
+    // Case 3: ถ้าเป็น Path เก่า (http://.../images/events/...)
+    else if (filename.includes('/images/events/')) {
+      // ให้สกัดเอาเฉพาะชื่อไฟล์
+      filename = filename.split('/').pop();
+      correctImageUrl = `${API_BASE_URL}/images/${filename}`;
+    }
+    // Case 4: ถ้าเป็นแค่ชื่อไฟล์ (ข้อมูลใหม่) หรือมี / นำหน้า
+    else {
+      // (ป้องกันกรณีชื่อไฟล์มี / นำหน้า เช่น /abc.png)
+      if (filename.startsWith('/')) {
+        filename = filename.substring(1);
+      }
+      correctImageUrl = `${API_BASE_URL}/images/${filename}`;
+    }
+  }
+
   return {
     id: event.id,
     title: event.title,
     host: event.organizer || 'ไม่ระบุผู้จัด',
     date: event.startTime,
     location: event.location || 'ไม่ระบุสถานที่',
-coverUrl: event.imageUrl || null,    liked: event.isFavorited || false,
+    imageUrl: correctImageUrl, // ❗️ ใช้ URL ที่เราแก้ไขแล้ว
+    liked: event.isFavorited || false,
     category: event.category || 'ทั้งหมด',
     type: event.category || 'ทั้งหมด',
     unit: event.organizer || 'ทั้งหมด',
@@ -83,10 +117,9 @@ coverUrl: event.imageUrl || null,    liked: event.isFavorited || false,
   };
 }
 
+
 /**
  * ดึงข้อมูลหน้า Home (Events + Favorites + Hero + Agenda)
- * @param {string} token - Auth token (optional) - ไม่จำเป็นแล้วเพราะ axiosInstance จัดการให้
- * @param {number} userId - User ID สำหรับเช็ค favorites (optional)
  */
 export async function fetchHomeData(token, userId = null) {
   try {
@@ -100,7 +133,7 @@ export async function fetchHomeData(token, userId = null) {
       // ถ้ามี userId ดึงพร้อม favorite status
       console.log('👤 Fetching events for user:', userId);
       const eventsData = await getEventCardsForUser(userId);
-      events = eventsData.map(transformEventToFrontend);
+      events = eventsData.map(transformEventToFrontend); // ❗️ เรียกใช้ตัวแปลงที่แก้ไขแล้ว
       
       // กรอง events ที่ favorite
       favoriteEvents = events.filter(e => e.liked);
@@ -109,7 +142,7 @@ export async function fetchHomeData(token, userId = null) {
       // ถ้าไม่มี userId ดึงแบบธรรมดา (Public)
       console.log('🌐 Fetching public events');
       const eventsData = await getAllEventCards();
-      events = eventsData.map(transformEventToFrontend);
+      events = eventsData.map(transformEventToFrontend); // ❗️ เรียกใช้ตัวแปลงที่แก้ไขแล้ว
       console.log('✅ Public events loaded:', events.length);
     }
 
@@ -124,7 +157,7 @@ export async function fetchHomeData(token, userId = null) {
     console.error("[fetchHomeData] Error:", error);
     return {
       hero: mockHome.hero,
-      events: [],           
+      events: [],
       favoriteEvents: [],
       agendaDays: mockHome.agendaDays,
       notifications: mockHome.notifications,
@@ -134,15 +167,13 @@ export async function fetchHomeData(token, userId = null) {
 
 /**
  * ดึงข้อมูลหน้า Home สำหรับ Staff (รวม Draft events)
- * @param {string} token - Auth token  
- * @param {number} userId - User ID
  */
 export async function fetchHomeDataForStaff(token, userId = null) {
   try {
     console.log('📦 Fetching home data for staff...');
     
     const eventsData = await getAllEventCardsForAdmin();
-    const events = eventsData.map(transformEventToFrontend);
+    const events = eventsData.map(transformEventToFrontend); // ❗️ เรียกใช้ตัวแปลงที่แก้ไขแล้ว
     
     console.log('✅ Staff events loaded (including drafts):', events.length);
     
@@ -167,13 +198,8 @@ export async function fetchHomeDataForStaff(token, userId = null) {
 
 /**
  * Toggle Favorite Event
- * @param {number} eventId - ID ของ event
- * @param {boolean} liked - สถานะใหม่ (true = เพิ่มเป็นรายการโปรด, false = ยกเลิกการบันทึก)
- * @param {string} token - Auth token (ไม่จำเป็นแล้ว - axiosInstance จัดการให้)
- * @param {number} userId - User ID
  */
 export async function updateFavoriteEvent(eventId, liked, token, userId) {
-  // ⭐️ เรายังเช็ค userId ตรงนี้ได้ (ถ้าอยาก)
   if (!userId) {
     console.error("[updateFavoriteEvent] userId is required (for client check)");
     return { ok: false, error: "User ID is required" };
@@ -183,12 +209,8 @@ export async function updateFavoriteEvent(eventId, liked, token, userId) {
     console.log("?? Updating favorite:", { eventId, nextState: liked, userId });
 
     if (liked) {
-      // ⭐️ [จุดแก้ที่ 1] ⭐️
-      // ลบ userId ออกจากการเรียก
       await addFavorite(eventId);
     } else {
-      // ⭐️ [จุดแก้ที่ 2] ⭐️
-      // ลบ userId ออกจากการเรียก
       await removeFavorite(eventId);
     }
 
@@ -207,7 +229,7 @@ export async function fetchAllEvents() {
   try {
     console.log('📋 Fetching all events...');
     const events = await getAllEventCards();
-    const transformed = events.map(transformEventToFrontend);
+    const transformed = events.map(transformEventToFrontend); // ❗️ เรียกใช้ตัวแปลงที่แก้ไขแล้ว
     console.log('✅ All events loaded:', transformed.length);
     return transformed;
   } catch (error) {
