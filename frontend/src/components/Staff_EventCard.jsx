@@ -98,9 +98,9 @@ export default function StaffEventCard({
             {/* กล่องรูป 5:3 */}
             <div className="rounded-2xl bg-gray-100 overflow-hidden mb-5">
               <div className="aspect-[5/3] w-full flex items-center justify-center">
-                {e.coverUrl ? (
+                {e.imageUrl ? (
                   <img
-                    src={e.coverUrl}
+                    src={e.imageUrl}
                     alt={e.title}
                     className="h-full w-full object-cover"
                     loading="lazy"
