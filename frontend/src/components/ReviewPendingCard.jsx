@@ -66,9 +66,9 @@ export default function ReviewPendingCard({ e, loggedIn, onOpen }) {
       {/* Original Card Content (dimmed) */}
       <div className="relative overflow-hidden rounded-[20px] bg-gray-100">
         <div className="aspect-[4/3] w-full">
-          {e.coverUrl ? (
+          {e.imageUrl ? (
             <img
-              src={e.coverUrl}
+              src={e.imageUrl}
               alt={e.title}
               className="h-full w-full object-cover opacity-60"
               loading="lazy"
