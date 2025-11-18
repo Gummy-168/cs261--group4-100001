@@ -39,7 +39,7 @@ public class EventService {
     private final NotificationQueueRepository notificationQueueRepository;
     private final UserRepository userRepository;
 
-    // ⭐️ ดึง Base URL (ถ้าไม่มีใน .properties, จะใช้ 8080 เป็นค่าเริ่มต้น)
+    // ดึง Base URL (ถ้าไม่มีใน .properties, จะใช้ http://localhost:8080 เป็นค่าเริ่มต้น)
     @Value("${server.base-url:http://localhost:8080}")
     private String baseUrl;
 
@@ -61,6 +61,8 @@ public class EventService {
         this.feedbackService = feedbackService;
     }
 
+    // =============== BASIC GET ===============
+
     public List<Event> getAll() {
         return updateEventImageUrls(repo.findAll());
     }
@@ -71,6 +73,8 @@ public class EventService {
     public List<Event> getPublicEvents() {
         return updateEventImageUrls(repo.findByIsPublicTrue());
     }
+
+    // =============== CARD DTO (ไม่ filter ผู้ใช้) ===============
 
     /**
      * ดึงข้อมูล Events ที่เป็น Public ในรูปแบบ Card DTO
@@ -95,7 +99,8 @@ public class EventService {
     /**
      * ดึงข้อมูล Events ของคณะเฉพาะในรูปแบบ Card DTO
      * สำหรับ Admin/Staff ของคณะนั้น
-     * @param faculty - ชื่อคณะ
+     *
+     * @param faculty ชื่อคณะ
      */
     public List<EventCardDTO> getAllCardsForAdminByFaculty(String faculty) {
         return repo.findByCreatedByFaculty(faculty).stream()
@@ -105,7 +110,8 @@ public class EventService {
 
     /**
      * ดึงข้อมูล Events ของ Admin คนนั้นเฉพาะ
-     * @param adminEmail - Email ของ Admin
+     *
+     * @param adminEmail Email ของ Admin
      */
     public List<EventCardDTO> getAllCardsForAdminByEmail(String adminEmail) {
         return repo.findByCreatedByAdmin(adminEmail).stream()
@@ -113,9 +119,12 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
+    // =============== CARD DTO (ฝั่ง User + favorite flag) ===============
+
     /**
      * ดึงข้อมูล Events ที่เป็น Public ในรูปแบบ Card DTO พร้อมเช็ค Favorite
-     * @param userId - ID ของ user เพื่อเช็คว่า favorite หรือยัง
+     *
+     * @param userId ID ของ user เพื่อเช็คว่า favorite หรือยัง
      */
     public List<EventCardDTO> getAllCardsForUser(Long userId) {
         List<Event> events = repo.findByIsPublicTrue(); // ดึงเฉพาะ Public Events
@@ -136,6 +145,8 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
+    // =============== SINGLE EVENT (view count + absolute URL) ===============
+
     /**
      * ดึง Event เดียว + เพิ่ม viewCount และแปลง imageUrl ให้เป็น absolute
      */
@@ -143,7 +154,7 @@ public class EventService {
         Event event = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
 
-        // ⭐ เพิ่มการนับ view
+        // เพิ่มการนับ view
         Integer currentViews = event.getViewCount();
         if (currentViews == null) {
             currentViews = 0;
@@ -152,11 +163,13 @@ public class EventService {
 
         Event saved = repo.save(event);
 
-        // ⭐ อัปเดต imageUrl ให้เป็น absolute
+        // อัปเดต imageUrl ให้เป็น absolute
         updateEventImageUrl(saved);
 
         return saved;
     }
+
+    // =============== CREATE / UPDATE / DELETE ===============
 
     public Event create(Event e) {
         logger.info("Creating new event: {}", e.getTitle());
@@ -185,7 +198,7 @@ public class EventService {
         existed.setFee(e.getFee());
         existed.setTags(e.getTags());
         existed.setImageUrl(e.getImageUrl());
-        existed.setIsPublic(e.getIsPublic()); // ✅ เพิ่มการ update isPublic
+        existed.setIsPublic(e.getIsPublic()); // update isPublic
 
         Event updated = repo.save(existed);
         logger.info("Event updated successfully: {}", id);
@@ -219,6 +232,8 @@ public class EventService {
         repo.deleteById(id);
         logger.info("Event deleted successfully: {}", id);
     }
+
+    // =============== SEARCH (Activities page) ===============
 
     public List<Event> search(String keyword, String category, String location, String organizer,
                               LocalDate startTime, LocalDate endTime, String sortBy) {
@@ -270,7 +285,7 @@ public class EventService {
                         root.get("startTime"), endTime.atTime(LocalTime.MAX)));
             }
 
-            // ⭐️ เพิ่มเงื่อนไข: ดึงเฉพาะ isPublic = true
+            // ดึงเฉพาะ isPublic = true
             predicates.add(criteriaBuilder.isTrue(root.get("isPublic")));
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
@@ -280,15 +295,13 @@ public class EventService {
 
         // เรียงลำดับ
         Sort sort = switch (sortKey) {
-            case "popular" -> // "เรื่องเด่น"  คือมีคนเข้าร่วมเยอะสุด
+            case "popular" -> // เรื่องเด่น = มีคนเข้าร่วมเยอะสุด
                     Sort.by(Sort.Direction.DESC, "currentParticipants");
 
-            // ⭐️ [แก้ไข] ใช้ key "new" (front ส่งมาเป็น new)
-            case "new" -> // "กิจกรรมใหม่"  กิจกรรมที่กำลังจะเริ่มเร็วๆ นี้
+            case "new" -> // กิจกรรมใหม่ (เอา startTime ล่าสุดขึ้นก่อน)
                     Sort.by(Sort.Direction.DESC, "startTime");
 
-            // ⭐️ [แก้ไข] ใช้ key "closingsoon" (ตัวเล็กหมด เพราะเรา toLowerCase แล้ว)
-            case "closingsoon" -> // "ใกล้ปิดรับสมัคร"
+            case "closingsoon" -> // ใกล้ปิดรับสมัคร (endTime ใกล้สุดก่อน)
                     Sort.by(Sort.Direction.ASC, "endTime");
 
             default ->
@@ -299,7 +312,7 @@ public class EventService {
         return updateEventImageUrls(events);
     }
 
-    // ================== Helper ต่าง ๆ ==================
+    // =============== Helper ต่าง ๆ ===============
 
     /**
      * เมธอดช่วยสร้าง DTO ที่มีสถิติครบถ้วน (favoriteCount, reviewCount, rating, viewCount)
@@ -349,13 +362,21 @@ public class EventService {
 
     /**
      * Helper: แปลง imageUrl ของ event เดียวให้เป็น absolute URL
+     * ป้องกันเคส baseUrl + "/" + "/api/..." แล้วกลายเป็น "//"
      */
     private void updateEventImageUrl(Event event) {
         if (event == null) return;
         String imageUrl = event.getImageUrl();
 
-        // เช็คว่า imageUrl ไม่ null, ไม่ใช่ "http" (เผื่อเป็น URL เต็มอยู่แล้ว), และไม่ใช่ "data:image" (เผื่อเป็น Base64)
-        if (imageUrl != null && !imageUrl.startsWith("http") && !imageUrl.startsWith("data:image")) {
+        // ถ้า null / เป็น URL เต็ม / base64 → ไม่ยุ่ง
+        if (imageUrl == null || imageUrl.startsWith("http") || imageUrl.startsWith("data:image")) {
+            return;
+        }
+
+        // ถ้า imageUrl ขึ้นต้นด้วย "/" อยู่แล้ว → ต่อเลยไม่ต้องเติม "/"
+        if (imageUrl.startsWith("/")) {
+            event.setImageUrl(baseUrl + imageUrl);
+        } else {
             event.setImageUrl(baseUrl + "/" + imageUrl);
         }
     }
