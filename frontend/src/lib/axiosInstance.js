@@ -61,6 +61,7 @@ axiosInstance.interceptors.response.use(
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
+      const message = data?.message || `Error ${status}`;
       
       switch (status) {
         case 401:
@@ -91,7 +92,9 @@ axiosInstance.interceptors.response.use(
           console.error(`Error ${status}: ${data?.message || 'Unknown error'}`);
       }
       
-      return Promise.reject(new Error(data?.message || `Error ${status}`));
+      // ❗ Preserve the original error object so callers can still inspect status/response
+      error.message = message;
+      return Promise.reject(error);
     } else if (error.request) {
       // Request was made but no response
       console.error('Network error - no response from server');

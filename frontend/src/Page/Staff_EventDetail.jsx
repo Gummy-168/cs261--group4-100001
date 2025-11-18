@@ -39,6 +39,10 @@ function formatTime(iso) {
 // --- อัปโหลด: ค่าคงที่ + helpers ---------------------------
 // จำกัดขนาดไฟล์สูงสุด (ปรับได้ตามต้องการ)
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const CSV_TEMPLATE = `index,student_name,email
+1,6709616848,example@dome.tu.ac.th
+2,6709XXXXX,student@dome.tu.ac.th
+`;
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes)) return "";
@@ -101,11 +105,11 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
   };
 
   // ✅ อัปโหลดไฟล์: ตรวจชนิด + ขนาด + เชื่อม API จริง
-  const handleUploadFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleUploadFile = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    if (!isCsvFile(file)) {
+  if (!isCsvFile(file)) {
       setError("ระบบรองรับเฉพาะไฟล์ .csv (Comma Separated Values) เท่านั้น");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
@@ -114,11 +118,19 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
     if (file.size > MAX_UPLOAD_BYTES) {
       setError(`ขนาดไฟล์เกินกำหนด (สูงสุด ${formatBytes(MAX_UPLOAD_BYTES)}). ไฟล์ที่เลือกมีขนาด ${formatBytes(file.size)}`);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
+    return;
+  }
 
-    setError(null);
-    setUploading(true);
+  const overwriteConfirmed = window.confirm(
+    "การอัปโหลดไฟล์ใหม่จะลบรายชื่อผู้เข้าร่วมทั้งหมดของกิจกรรมนี้ก่อน แล้วค่อยเพิ่มรายชื่อจากไฟล์ใหม่ ต้องการดำเนินการต่อหรือไม่?"
+  );
+  if (!overwriteConfirmed) {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    return;
+  }
+
+  setError(null);
+  setUploading(true);
     try {
       const response = await uploadParticipantsList(event.id, file);
       const addedCount =
@@ -204,7 +216,7 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
     }
   };
 
-  const rows = [
+const rows = [
     ["ประเภท", event.category || event.activityType || event.type || "-"],
     ["วันเริ่มกิจกรรม", <>{dateLabel || "-"}</>],
     ["เวลาที่เริ่ม", <>{timeLabel ? `${timeLabel} น.` : "-"}</>],
@@ -212,6 +224,23 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
     ["สถานที่จัด", event.location || "-"],
     ["ติดต่อสอบถาม", contactLabel || "-"],
   ];
+
+  const downloadCsvTemplate = () => {
+    try {
+      const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "participants_template.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download template:", err);
+      setError("ไม่สามารถดาวน์โหลดไฟล์ตัวอย่างได้ กรุณาลองใหม่");
+    }
+  };
 
   return (
     <div style={{ background: THEME.page, color: THEME.text, minHeight: "100vh" }}>
@@ -302,7 +331,8 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
               {/* แถวปุ่มล่าง: ซ้าย=อัปโหลดไฟล์, ขว=ปุ่มเดิม */}
               <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 {/* ซ้าย: ปุ่มอัปโหลดไฟล์ */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
                   <label
                     htmlFor="upload-spreadsheet"
                     className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-100 ${
@@ -349,6 +379,25 @@ export default function StaffEventDetailPage({ navigate, auth, data, eventId, re
                       </button>
                     </span>
                   )}
+                  </div>
+                  <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-xs text-yellow-900">
+                    <p className="font-semibold">คำเตือน: การอัปโหลดไฟล์ใหม่จะลบรายชื่อเดิมทั้งหมด</p>
+                    <p className="mt-1">
+                      รูปแบบไฟล์ที่รองรับ: <code>index,student_name,email</code> (ค่า <code>student_name</code> จะถูกใช้เป็น username สำหรับตรวจสอบสิทธิ์รีวิว)
+                    </p>
+                    <button
+                      type="button"
+                      onClick={downloadCsvTemplate}
+                      className="mt-2 inline-flex items-center gap-2 rounded-full border border-yellow-300 px-3 py-1.5 text-xs font-semibold text-yellow-900 hover:bg-yellow-100"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6">
+                        <path d="M12 5v14M5 12h14" />
+                        <path d="M19 21H5a2 2 0 0 1-2-2v-3" />
+                        <path d="m16 17 3 3 3-3" />
+                      </svg>
+                      ดาวน์โหลด template.csv
+                    </button>
+                  </div>
                 </div>
 
                 {/* ขวา: ปุ่มเดิม */}

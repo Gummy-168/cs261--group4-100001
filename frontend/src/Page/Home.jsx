@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Header, { HeaderSpacer } from "../components/Header";
 import Hero from "../components/Hero";
 import EventsSection from "../components/EventsSection";
@@ -9,6 +9,7 @@ import Footer from "../components/Footer";
 import { THEME } from "../theme";
 import useEventFavorites from "../hooks/useEventFavorites";
 import ReviewPendingCard from "../components/ReviewPendingCard";
+import { getMyFeedback } from "../services/feedbackService";
 
 // import { MOCK_EVENTS_WITH_REVIEWS } from "../lib/mockData";
 
@@ -63,6 +64,70 @@ export default function Home({ navigate, auth, data, requireLogin }) {
     auth,
     requireLogin
   );
+  const [reviewStatus, setReviewStatus] = useState({});
+
+  const hasEventEnded = (event) => {
+    if (!event?.endTime) return false;
+    try {
+      return new Date(event.endTime).getTime() < Date.now();
+    } catch {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (!auth?.loggedIn) {
+      setReviewStatus({});
+      return;
+    }
+    const endedFavorites =
+      (favorites ?? []).filter((event) => hasEventEnded(event)) ?? [];
+    const toCheck = endedFavorites.filter(
+      (event) => event?.id && !reviewStatus[event.id]
+    );
+    if (toCheck.length === 0) return;
+
+    let cancelled = false;
+    const fetchStatus = async () => {
+      const entries = await Promise.all(
+        toCheck.map(async (event) => {
+          try {
+            const feedback = await getMyFeedback(event.id);
+            return [
+              event.id,
+              { canReview: true, hasReview: Boolean(feedback) },
+            ];
+          } catch (err) {
+            if (err?.code === 403 || err?.code === 401) {
+              return [event.id, { canReview: false, hasReview: false }];
+            }
+            console.error(
+              `Failed to check review status for event ${event.id}:`,
+              err
+            );
+            return [event.id, { canReview: false, hasReview: false }];
+          }
+        })
+      );
+      if (cancelled) return;
+      setReviewStatus((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    };
+
+    fetchStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [auth?.loggedIn, favorites, reviewStatus]);
+
+  const reviewableFavorites = useMemo(() => {
+    if (!auth?.loggedIn) return [];
+    return (favorites ?? []).filter((event) => {
+      if (!hasEventEnded(event)) return false;
+      const status = reviewStatus[event.id];
+      if (!status) return false;
+      return status.canReview && !status.hasReview;
+    });
+  }, [auth?.loggedIn, favorites, reviewStatus]);
 
   const goToSearch = (query = "") => {
     // Navigate ไปหน้า Activities แล้วค้นหาที่นั่น
@@ -191,10 +256,7 @@ export default function Home({ navigate, auth, data, requireLogin }) {
                   </section>
 
                   {/* Section 2: Pending Review Activities */}
-                  {favorites.some(e => {
-                    const hasEnded = e.endTime && new Date(e.endTime).getTime() < Date.now();
-                    return hasEnded && !e.hasReviewed;
-                  }) && (
+                  {reviewableFavorites.length > 0 && (
                     <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
@@ -206,11 +268,7 @@ export default function Home({ navigate, auth, data, requireLogin }) {
                       </div>
 
                       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {favorites
-                          .filter(event => {
-                            const hasEnded = event.endTime && new Date(event.endTime).getTime() < Date.now();
-                            return hasEnded && !event.hasReviewed;
-                          })
+                        {reviewableFavorites
                           .sort((a, b) => {
                             const dateA = new Date(a.date ?? 0).getTime();
                             const dateB = new Date(b.date ?? 0).getTime();

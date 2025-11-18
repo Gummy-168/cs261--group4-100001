@@ -19,6 +19,9 @@ export function normalizeImagePath(rawPath) {
     }
   }
 
+  // Normalize Windows-style backslashes to standard slashes
+  path = path.replace(/\\/g, "/");
+
   if (!path) return null;
 
   // Drop query/hash fragments to keep storage clean

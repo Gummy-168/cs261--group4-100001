@@ -5,10 +5,49 @@ import {
   submitFeedback,
   deleteFeedback as deleteFeedbackApi,
   getMyFeedback,
+  getFeedbackStatistics,
 } from "../services/feedbackService";
+
+const EMPTY_DISTRIBUTION = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+const normalizeStatisticsDistribution = (distribution) => {
+  const normalized = { ...EMPTY_DISTRIBUTION };
+  if (!distribution || typeof distribution !== "object") {
+    return normalized;
+  }
+  const keyMap = {
+    5: ["5stars", "5star", "five", "5"],
+    4: ["4stars", "4star", "four", "4"],
+    3: ["3stars", "3star", "three", "3"],
+    2: ["2stars", "2star", "two", "2"],
+    1: ["1stars", "1star", "one", "1"],
+  };
+  Object.entries(keyMap).forEach(([rating, keys]) => {
+    for (const key of keys) {
+      if (distribution[key] != null) {
+        const num = Number(distribution[key]);
+        normalized[rating] = Number.isFinite(num) ? num : 0;
+        return;
+      }
+    }
+  });
+  return normalized;
+};
+
+const buildDistributionFromReviews = (reviews = []) => {
+  const distribution = { ...EMPTY_DISTRIBUTION };
+  reviews.forEach((review) => {
+    const rating = Number(review.rating) || 0;
+    if (rating >= 1 && rating <= 5) {
+      distribution[rating] = (distribution[rating] || 0) + 1;
+    }
+  });
+  return distribution;
+};
 
 export default function EventReviews({ eventId, auth, scenario = "can-review" }) {
   const [reviews, setReviews] = useState([]);
+  const [statistics, setStatistics] = useState(null);
   const [newRating, setNewRating] = useState(0);
   const [newComment, setNewComment] = useState("");
   const [filter, setFilter] = useState("all");
@@ -21,21 +60,33 @@ export default function EventReviews({ eventId, auth, scenario = "can-review" })
   }));
 
   const refreshReviews = useCallback(async () => {
-    if (!eventId) return;
+    if (!eventId) {
+      setReviews([]);
+      setStatistics(null);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const list = await getAllFeedbacks(eventId);
+      const [list, stats] = await Promise.all([
+        getAllFeedbacks(eventId),
+        getFeedbackStatistics(eventId).catch((statsErr) => {
+          console.error("Error fetching feedback statistics:", statsErr);
+          return null;
+        }),
+      ]);
       const normalized = Array.isArray(list)
         ? list
         : Array.isArray(list?.feedbacks)
         ? list.feedbacks
         : [];
       setReviews(normalized);
+      setStatistics(stats);
     } catch (err) {
       console.error(err);
       setError(err.message || "ไม่สามารถโหลดรีวิวได้");
       setReviews([]);
+      setStatistics(null);
     } finally {
       setLoading(false);
     }
@@ -145,27 +196,38 @@ export default function EventReviews({ eventId, auth, scenario = "can-review" })
   const canReview = eligibility.status === "allowed";
 
   const { average, counts, total } = useMemo(() => {
-    if (!Array.isArray(reviews) || reviews.length === 0) {
+    if (statistics) {
+      const parsedAverage =
+        typeof statistics.averageRating === "number"
+          ? statistics.averageRating
+          : parseFloat(statistics.averageRating);
+      const totalCount =
+        typeof statistics.totalFeedbacks === "number"
+          ? statistics.totalFeedbacks
+          : statistics.totalFeedbacks != null
+          ? Number(statistics.totalFeedbacks)
+          : statistics.count != null
+          ? Number(statistics.count)
+          : null;
       return {
-        average: 0,
-        counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-        total: 0,
+        average: Number.isFinite(parsedAverage) ? parsedAverage : 0,
+        counts: normalizeStatisticsDistribution(statistics.distribution),
+        total:
+          Number.isFinite(totalCount) && totalCount !== null
+            ? totalCount
+            : reviews.length,
       };
     }
-    const cnts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    let sum = 0;
-    reviews.forEach((r) => {
-      const rating = Number(r.rating) || 0;
-      if (rating < 1 || rating > 5) return;
-      cnts[rating] = (cnts[rating] || 0) + 1;
-      sum += rating;
-    });
+    if (!Array.isArray(reviews) || reviews.length === 0) {
+      return { average: 0, counts: { ...EMPTY_DISTRIBUTION }, total: 0 };
+    }
+    const sum = reviews.reduce((acc, review) => acc + (Number(review.rating) || 0), 0);
     return {
       average: reviews.length ? sum / reviews.length : 0,
-      counts: cnts,
+      counts: buildDistributionFromReviews(reviews),
       total: reviews.length,
     };
-  }, [reviews]);
+  }, [reviews, statistics]);
 
   const filteredReviews =
     filter === "all"

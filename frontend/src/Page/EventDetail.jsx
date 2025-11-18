@@ -5,6 +5,7 @@ import { THEME } from "../theme";
 import { updateFavoriteEvent } from "../lib/api";
 import EventReviews from "../components/EventReviews";
 // import EventComment from "../components/EventComment";
+import { getEventById } from "../services/eventService";
 
 function combineEventSources(data, eventId) {
   if (!data) return null;
@@ -68,6 +69,14 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
     setLiked(Boolean(event?.liked));
     setError(null);
   }, [event?.id, event?.liked]);
+
+  useEffect(() => {
+    if (!eventId) return;
+    // เรียก backend ให้บันทึก viewCount (+1) ทุกครั้งที่เปิดหน้า
+    getEventById(eventId).catch((err) => {
+      console.error("Failed to record event view count:", err);
+    });
+  }, [eventId]);
 
   const onBack = () => {
     if (window.history.length > 1) {

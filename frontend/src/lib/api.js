@@ -6,6 +6,50 @@ import Welcome from "../assets/img/Welcom.png";
 import Welcome2 from "../assets/img/Welcome2.png";
 import { normalizeImagePath } from "./imagePath";
 
+const resolveRawImageSource = (event = {}) => {
+  const candidates = [
+    event.imageUrl,
+    event.imageURL,
+    event.image_path,
+    event.imagePath,
+    event.image,
+    event.imageSrc,
+    event.image_source,
+    event.coverImage,
+    event.cover_image,
+    event.coverUrl,
+    event.cover_url,
+    event.thumbnail,
+    event.thumbnailUrl,
+    event.thumbnail_url,
+    event.thumbnailPath,
+    event.thumbnail_path,
+    event.poster,
+    event.posterUrl,
+    event.poster_url,
+    event.heroImage,
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (typeof candidate === "string") {
+      if (candidate.trim()) return candidate;
+      continue;
+    }
+    if (typeof candidate === "object") {
+      const nested =
+        candidate.url ||
+        candidate.src ||
+        candidate.path ||
+        candidate.imageUrl ||
+        candidate.image_path;
+      if (typeof nested === "string" && nested.trim()) {
+        return nested;
+      }
+    }
+  }
+  return null;
+};
+
 const mockHome = {
   hero: {
     // Silde Show data
@@ -61,28 +105,37 @@ const mockHome = {
  * ⭐️ [รวมการแก้ไข] ⭐️ - แก้ไขการสร้าง URL รูปภาพให้เป็นมาตรฐานเดียว (รองรับทุกเคส)
  */
 function transformEventToFrontend(event) {
-  
+  const rawImage = resolveRawImageSource(event);
   let correctImageUrl = null;
-  
-  if (event.imageUrl) {
-    if (typeof event.imageUrl === "string" && event.imageUrl.startsWith("http")) {
-      correctImageUrl = event.imageUrl;
+
+  if (rawImage) {
+    if (typeof rawImage === "string" && rawImage.startsWith("http")) {
+      correctImageUrl = rawImage;
     } else {
-      const normalizedPath = normalizeImagePath(event.imageUrl);
+      const normalizedPath = normalizeImagePath(rawImage);
       if (normalizedPath) {
-        const filename = normalizedPath.split("/").pop();
-        if (filename) {
-          correctImageUrl = `${API_BASE_URL}/images/${filename}`;
-        }
+        const backendBaseUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+        const relativePath = normalizedPath.startsWith("/")
+          ? normalizedPath
+          : `/${normalizedPath}`;
+        correctImageUrl = `${backendBaseUrl}${relativePath}`;
       }
     }
   }
+
+  const normalizedDate = event.date || event.startTime || null;
+  const normalizedUpdatedAt = event.updatedAt || event.modifiedAt || event.lastUpdated || null;
+  const normalizedCreatedAt = event.createdAt || event.postedAt || null;
+  const normalizedViews = event.views ?? event.viewCount ?? event.totalViews ?? null;
+  const normalizedLikes = event.likes ?? event.favoriteCount ?? event.totalFavorites ?? event.likesCount ?? null;
+  const normalizedReviews = event.reviews ?? event.reviewCount ?? event.totalReviews ?? null;
+  const normalizedScore = event.rating ?? event.score ?? event.averageRating ?? null;
 
   return {
     id: event.id,
     title: event.title,
     host: event.organizer || 'ไม่ระบุผู้จัด',
-    date: event.startTime,
+    date: normalizedDate,
     location: event.location || 'ไม่ระบุสถานที่',
     imageUrl: correctImageUrl, // ❗️ ใช้ URL ที่เราแก้ไขแล้ว
     liked: event.isFavorited || false,
@@ -100,6 +153,12 @@ function transformEventToFrontend(event) {
     isFull: event.isFull,
     availableSeats: event.availableSeats,
     isPublic: event.isPublic,
+    updatedAt: normalizedUpdatedAt,
+    createdAt: normalizedCreatedAt,
+    views: normalizedViews,
+    likes: normalizedLikes,
+    reviews: normalizedReviews,
+    rating: normalizedScore,
   };
 }
 
@@ -195,9 +254,9 @@ export async function updateFavoriteEvent(eventId, liked, token, userId) {
     console.log("?? Updating favorite:", { eventId, nextState: liked, userId });
 
     if (liked) {
-      await addFavorite(eventId);
+      await addFavorite(eventId, userId);
     } else {
-      await removeFavorite(eventId);
+      await removeFavorite(eventId, userId);
     }
 
     console.log("? Favorite updated successfully");

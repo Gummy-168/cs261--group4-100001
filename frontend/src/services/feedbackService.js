@@ -1,39 +1,28 @@
 import axiosInstance from '../lib/axiosInstance';
 
-const readProfileDraft = () => {
+const readAuthToken = () => {
   if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem('profileDraft');
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
+  return (
+    window.localStorage.getItem('authToken') ||
+    window.sessionStorage.getItem('authToken') ||
+    window.localStorage.getItem('adminToken') ||
+    null
+  );
+};
+
+const ensureAuthenticated = () => {
+  const token = readAuthToken();
+  if (!token) {
+    const err = new Error('กรุณาเข้าสู่ระบบก่อนจึงจะสามารถรีวิวได้');
+    err.code = 401;
+    throw err;
   }
 };
 
-const resolveReviewerUsername = () => {
-  if (typeof window === 'undefined') return null;
-  const profile = readProfileDraft();
-  const username =
-    profile?.username ||
-    profile?.studentId ||
-    profile?.email ||
-    window.localStorage.getItem('username') ||
-    window.sessionStorage.getItem('username') ||
-    window.localStorage.getItem('userEmail') ||
-    window.sessionStorage.getItem('userEmail') ||
-    profile?.id?.toString() ||
-    window.localStorage.getItem('userId') ||
-    window.sessionStorage.getItem('userId');
-  return username ? username.toString() : null;
-};
-
-const getReviewerHeaders = () => {
-  const username = resolveReviewerUsername();
-  if (!username) {
-    throw new Error('กรุณาเข้าสู่ระบบก่อนจึงจะสามารถรีวิวได้');
-  }
-  return { 'X-Username': username };
-};
+const normalizeFeedbackPayload = (feedbackData = {}) => ({
+  rating: Number(feedbackData.rating),
+  comment: (feedbackData.comment ?? '').toString().trim(),
+});
 
 /**
  * สร้าง Feedback สำหรับ Event
@@ -43,12 +32,10 @@ const getReviewerHeaders = () => {
  */
 export const createFeedback = async (eventId, feedbackData) => {
   try {
+    ensureAuthenticated();
     const response = await axiosInstance.post(
       `/events/${eventId}/feedbacks`,
-      feedbackData,
-      {
-        headers: getReviewerHeaders()
-      }
+      normalizeFeedbackPayload(feedbackData)
     );
     return response.data;
   } catch (error) {
@@ -65,12 +52,10 @@ export const createFeedback = async (eventId, feedbackData) => {
  */
 export const updateFeedback = async (eventId, feedbackData) => {
   try {
+    ensureAuthenticated();
     const response = await axiosInstance.put(
       `/events/${eventId}/feedbacks`,
-      feedbackData,
-      {
-        headers: getReviewerHeaders()
-      }
+      normalizeFeedbackPayload(feedbackData)
     );
     return response.data;
   } catch (error) {
@@ -86,9 +71,8 @@ export const updateFeedback = async (eventId, feedbackData) => {
  */
 export const deleteFeedback = async (eventId) => {
   try {
-    const response = await axiosInstance.delete(`/events/${eventId}/feedbacks`, {
-      headers: getReviewerHeaders()
-    });
+    ensureAuthenticated();
+    const response = await axiosInstance.delete(`/events/${eventId}/feedbacks`);
     return response.data;
   } catch (error) {
     console.error('Error deleting feedback:', error);
@@ -104,7 +88,7 @@ export const deleteFeedback = async (eventId) => {
 export const getAllFeedbacks = async (eventId) => {
   try {
     const response = await axiosInstance.get(`/events/${eventId}/feedbacks`);
-    return response.data.feedbacks || [];
+    return response.data;
   } catch (error) {
     console.error('Error fetching feedbacks:', error);
     throw new Error(error.message || 'ไม่สามารถโหลด feedback ได้');
@@ -118,10 +102,8 @@ export const getAllFeedbacks = async (eventId) => {
  */
 export const getMyFeedback = async (eventId) => {
   try {
-    const response = await axiosInstance.get(`/events/${eventId}/feedbacks/my`, {
-      headers: getReviewerHeaders()
-    });
-    
+    ensureAuthenticated();
+    const response = await axiosInstance.get(`/events/${eventId}/feedbacks/my`);
     return response.data.feedback ?? null;
   } catch (error) {
     const message = error.response?.data?.error || error.message;
@@ -131,6 +113,11 @@ export const getMyFeedback = async (eventId) => {
     if (error.response?.status === 403) {
       const err = new Error(message || 'ท่านไม่มีสิทธิ์เข้าถึงการรีวิวกิจกรรมนี้');
       err.code = 403;
+      throw err;
+    }
+    if (error.response?.status === 401) {
+      const err = new Error(message || 'กรุณาเข้าสู่ระบบก่อน');
+      err.code = 401;
       throw err;
     }
     console.error('Error fetching my feedback:', error);
@@ -163,7 +150,7 @@ export const hasUserGivenFeedback = async (eventId) => {
     const myFeedback = await getMyFeedback(eventId);
     return myFeedback !== null;
   } catch (error) {
-    if (error?.code === 403) {
+    if (error?.code === 403 || error?.code === 401) {
       throw error;
     }
     console.error('Error checking feedback status:', error);
@@ -180,7 +167,6 @@ export const hasUserGivenFeedback = async (eventId) => {
 export const submitFeedback = async (eventId, feedbackData) => {
   try {
     const hasFeedback = await hasUserGivenFeedback(eventId);
-    
     if (hasFeedback) {
       // ถ้ามี feedback อยู่แล้ว ให้ update
       return await updateFeedback(eventId, feedbackData);
@@ -190,7 +176,8 @@ export const submitFeedback = async (eventId, feedbackData) => {
     }
   } catch (error) {
     console.error('Error submitting feedback:', error);
-    throw new Error(error.message || 'ไม่สามารถส่ง feedback ได้');
+    const message = error.response?.data?.error || error.message || 'ไม่สามารถส่ง feedback ได้';
+    throw new Error(message);
   }
 };
 
