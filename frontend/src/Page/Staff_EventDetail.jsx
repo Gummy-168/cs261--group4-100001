@@ -7,6 +7,7 @@ import StaffConfirmPopup from "../components/Staff_ConfirmPopup";
 import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
 import { uploadParticipantsList } from "../services/participantService";
 import { deleteEvent } from "../services/eventService"; // 👈 เพิ่มบรรทัดนี้
+import ProtectedImage from "../components/ProtectedImage";
 
 // --- helpers -------------------------------------------------
 function combineEventSources(data, eventId) {
@@ -242,6 +243,20 @@ const rows = [
     }
   };
 
+  const imagePlaceholder = (
+    <div className="text-center text-gray-500 text-sm">
+      <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-gray-400">
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="4" width="18" height="14" rx="2" />
+          <path d="M7 13l3-3 3 4 2-2 3 4" />
+          <circle cx="9" cy="8" r="1" />
+        </svg>
+      </div>
+      <p>ภาพโปรโมตกิจกรรม</p>
+      <p className="text-xs mt-1 text-gray-400">อัตราส่วน 5:3</p>
+    </div>
+  );
+
   return (
     <div style={{ background: THEME.page, color: THEME.text, minHeight: "100vh" }}>
       <StaffHeader
@@ -269,21 +284,13 @@ const rows = [
               {/* ซ้าย: รูปกิจกรรม */}
               <div className="space-y-4">
                 <div className="rounded-2xl bg-gray-100 overflow-hidden aspect-[5/3] flex items-center justify-center">
-                  {event.imageUrl ? (
-                    <img src={event.imageUrl} alt={event.title} className="h-full w-full object-cover" loading="lazy" />
-                  ) : (
-                    <div className="text-center text-gray-500 text-sm">
-                      <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-gray-400">
-                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <rect x="3" y="4" width="18" height="14" rx="2" />
-                          <path d="M7 13l3-3 3 4 2-2 3 4" />
-                          <circle cx="9" cy="8" r="1" />
-                        </svg>
-                      </div>
-                      <p>ภาพโปรโมตกิจกรรม</p>
-                      <p className="text-xs mt-1 text-gray-400">อัตราส่วน 5:3</p>
-                    </div>
-                  )}
+                  <ProtectedImage
+                    src={event.imageUrl}
+                    alt={event.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    fallback={imagePlaceholder}
+                  />
                 </div>
               </div>
 

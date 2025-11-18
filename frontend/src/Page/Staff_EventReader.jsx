@@ -6,6 +6,7 @@ import { THEME, FLAGS } from "../theme";
 import { updateFavoriteEvent } from "../lib/api";
 import { navigateAndJump } from "../lib/jump"; // ✅ ใช้ jump util
 import EventReviews from "../components/EventReviews";
+import ProtectedImage from "../components/ProtectedImage";
 
 // --- helpers -------------------------------------------------
 function combineEventSources(data, eventId) {
@@ -130,6 +131,23 @@ export default function StaffEventReaderPage({
   };
 
   const startISO = event?.startTime ?? event?.date;
+  const imagePlaceholder = (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-gray-400">
+      <svg
+        viewBox="0 0 24 24"
+        className="h-14 w-14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11H3z" />
+        <path d="M3 19h18M9 13l2.5-3 2.5 3 1.5-2 3.5 5" />
+      </svg>
+      <span className="text-sm font-medium">
+        ยังไม่มีภาพกิจกรรม
+      </span>
+    </div>
+  );
 
   return (
     <div
@@ -169,30 +187,13 @@ export default function StaffEventReaderPage({
             <article className="overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-sm ">
               <div className="relative bg-black/5">
                 <div className="aspect-[4/2.5] w-full">
-                  {event.imageUrl ? (
-                    <img
-                      src={event.imageUrl}
-                      alt={event.title}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-gray-400">
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="h-14 w-14"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                      >
-                        <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11H3z" />
-                        <path d="M3 19h18M9 13l2.5-3 2.5 3 1.5-2 3.5 5" />
-                      </svg>
-                      <span className="text-sm font-medium">
-                        ยังไม่มีภาพกิจกรรม
-                      </span>
-                    </div>
-                  )}
+                  <ProtectedImage
+                    src={event.imageUrl}
+                    alt={event.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    fallback={imagePlaceholder}
+                  />
                 </div>
 
                 <FavoriteButton

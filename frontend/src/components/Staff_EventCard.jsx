@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import StaffConfirmPopup from "./Staff_ConfirmPopup";
 import { deleteEvent } from "../services/eventService";
 import toast from "react-hot-toast";
+import ProtectedImage from "./ProtectedImage";
 
 export default function StaffEventCard({
   e,
@@ -86,6 +87,26 @@ export default function StaffEventCard({
     }
   };
 
+  const imagePlaceholder = (
+    <div className="flex h-full w-full flex-col items-center justify-center text-gray-500 text-sm">
+      <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-gray-400">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <rect x="3" y="4" width="18" height="14" rx="2" />
+          <path d="M7 13l3-3 3 4 2-2 3 4" />
+          <circle cx="9" cy="8" r="1" />
+        </svg>
+      </div>
+      <p>ภาพโปรโมตกิจกรรม</p>
+      <p className="text-xs mt-1 text-gray-400">ขนาด 5:3</p>
+    </div>
+  );
+
   return (
     <>
       <article
@@ -98,32 +119,13 @@ export default function StaffEventCard({
             {/* กล่องรูป 5:3 */}
             <div className="rounded-2xl bg-gray-100 overflow-hidden mb-5">
               <div className="aspect-[5/3] w-full flex items-center justify-center">
-                {e.imageUrl ? (
-                  <img
-                    src={e.imageUrl}
-                    alt={e.title}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center text-gray-500 text-sm">
-                    <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-gray-400">
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="h-5 w-5"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                      >
-                        <rect x="3" y="4" width="18" height="14" rx="2" />
-                        <path d="M7 13l3-3 3 4 2-2 3 4" />
-                        <circle cx="9" cy="8" r="1" />
-                      </svg>
-                    </div>
-                    <p>ภาพโปรโมตกิจกรรม</p>
-                    <p className="text-xs mt-1 text-gray-400">ขนาด 5:3</p>
-                  </div>
-                )}
+                <ProtectedImage
+                  src={e.imageUrl}
+                  alt={e.title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  fallback={imagePlaceholder}
+                />
               </div>
             </div>
 
