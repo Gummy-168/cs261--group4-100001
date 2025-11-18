@@ -157,6 +157,7 @@ function transformEventToFrontend(event) {
     createdAt: normalizedCreatedAt,
     views: normalizedViews,
     likes: normalizedLikes,
+    favoriteCount: normalizedLikes,
     reviews: normalizedReviews,
     rating: normalizedScore,
   };
