@@ -54,6 +54,10 @@ public class Event {
     @Column(name = "created_by_faculty", columnDefinition = "NVARCHAR(200)")
     private String createdByFaculty;
 
+    @Column(name = "view_count")
+    private Integer viewCount;
+
+
     // Tags สำหรับการค้นหา (เก็บเป็น JSON หรือ comma-separated)
     @Column(columnDefinition = "NVARCHAR(500)")
     private String tags;
@@ -61,6 +65,14 @@ public class Event {
     // ✨ เพิ่มฟิลด์ isPublic เพื่อควบคุมการแสดงกิจกรรม
     @Column(name = "isPublic")
     private Boolean isPublic = false;
+
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
 
     // Default constructor
     public Event() {}

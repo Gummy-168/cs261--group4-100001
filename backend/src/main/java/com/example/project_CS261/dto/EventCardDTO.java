@@ -14,14 +14,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EventCardDTO {
-    
+
     private Long id;
     private String title;
     private String description;
     private String location;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    
+
     // ข้อมูลเพิ่มเติมสำหรับ Card
     private String imageUrl;
     private String category;
@@ -31,11 +31,18 @@ public class EventCardDTO {
     private String organizer;
     private Double fee;
     private String tags;
-    
+
     // ข้อมูลที่คำนวณเพิ่มเติม
-    private Boolean isFull; // เช็คว่าเต็มหรือยัง
-    private Integer availableSeats; // จำนวนที่นั่งว่าง
-    private Boolean isFavorited; // เช็คว่า user favorite หรือยัง (ถ้าส่ง userId มา)
+
+    private Boolean isFull;            // เช็คว่าเต็มหรือยัง
+    private Integer availableSeats;    // จำนวนที่นั่งว่าง
+    private Boolean isFavorited;       // เช็คว่า user favorite หรือยัง (ถ้าส่ง userId มา)
+
+    // ⭐⭐⭐ ข้อมูลสถิติใหม่
+    private Long favoriteCount;        // จำนวน Favorite
+    private Long reviewCount;          // จำนวน Review
+    private Double rating;             // ค่าเฉลี่ย Rating
+    private Integer viewCount;         // จำนวนการเข้าชม (view)
 
     /**
      * Constructor สำหรับสร้างจาก Event Entity
@@ -64,7 +71,13 @@ public class EventCardDTO {
             this.availableSeats = null;
             this.isFull = false;
         }
-        
+
         this.isFavorited = false; // ต้องเช็คจาก database ทีหลัง
+
+        // ⭐⭐⭐ ค่า default ก่อน Service จะมา set ค่าให้ทีหลัง
+        this.favoriteCount = 0L;
+        this.reviewCount = 0L;
+        this.rating = 0.0;
+        this.viewCount = (event.getViewCount() != null) ? event.getViewCount() : 0;
     }
 }

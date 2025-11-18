@@ -21,4 +21,9 @@ public interface EventParticipantRepository extends JpaRepository<EventParticipa
     long countByEventId(Long eventId);
 
     List<EventParticipant> findByUsername(String username);
+
+    // ⭐ ใช้เช็คสิทธิ์รีวิว (ต้องมี canReview = true)
+    boolean existsByEventIdAndUsernameAndCanReviewTrue(Long eventId, String username);
+
+    Optional<EventParticipant> findByEventIdAndUsernameAndCanReviewTrue(Long eventId, String username);
 }

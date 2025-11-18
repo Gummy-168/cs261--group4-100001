@@ -1,38 +1,29 @@
-//เป็นชั้นกลางที่ทำหน้าที่ ประมวลผล logic ของแอปพลิเคชัน ก่อนส่งไปยัง Repository หรือส่งกลับไปยัง Controller
-//พูดง่าย ๆ: Controller ไม่ไปยุ่งกับ Repository โดยตรง แต่สั่งงานผ่าน Service เพื่อแยกความรับผิดชอบ (Separation of Concerns)
-
 package com.example.project_CS261.service;
 
 import com.example.project_CS261.dto.EventCardDTO;
 import com.example.project_CS261.exception.ResourceNotFoundException;
 import com.example.project_CS261.model.Event;
 import com.example.project_CS261.model.Favorite;
+import com.example.project_CS261.model.NotificationQueue;
+import com.example.project_CS261.model.User;
+import com.example.project_CS261.repository.EventFeedbackRepository;
 import com.example.project_CS261.repository.EventRepository;
 import com.example.project_CS261.repository.FavoriteRepository;
-import com.example.project_CS261.repository.NotificationQueueRepository; // เพิ่ม
-import com.example.project_CS261.repository.UserRepository; // เพิ่ม
-import com.example.project_CS261.service.NotificationService; // เพิ่ม
-import com.example.project_CS261.model.NotificationQueue; // เพิ่ม
-import com.example.project_CS261.model.User;
+import com.example.project_CS261.repository.NotificationQueueRepository;
+import com.example.project_CS261.repository.UserRepository;
+import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-// ⭐️ [FIX 1] ADD IMPORT
-import org.springframework.beans.factory.annotation.Value;
-
-import java.util.List;
-import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
-
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import com.example.project_CS261.repository.EventSpecifications;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class EventService {
@@ -41,26 +32,36 @@ public class EventService {
 
     private final EventRepository repo;
     private final FavoriteRepository favoriteRepository;
+    private final EventFeedbackRepository eventFeedbackRepository;
+    private final FeedbackService feedbackService;
 
     private final NotificationService notificationService;
     private final NotificationQueueRepository notificationQueueRepository;
     private final UserRepository userRepository;
 
-    // ⭐️ [FIX 2] ADD FIELD: ดึง Base URL (ถ้าไม่มีใน .properties, จะใช้ 8080 เป็นค่าเริ่มต้น)
+    // ⭐️ ดึง Base URL (ถ้าไม่มีใน .properties, จะใช้ 8080 เป็นค่าเริ่มต้น)
     @Value("${server.base-url:http://localhost:8080}")
     private String baseUrl;
 
-    public EventService(EventRepository repo, FavoriteRepository favoriteRepository,
-                        NotificationService notificationService, NotificationQueueRepository notificationQueueRepository, UserRepository userRepository) {
+    public EventService(
+            EventRepository repo,
+            FavoriteRepository favoriteRepository,
+            NotificationService notificationService,
+            NotificationQueueRepository notificationQueueRepository,
+            UserRepository userRepository,
+            EventFeedbackRepository eventFeedbackRepository,
+            FeedbackService feedbackService
+    ) {
         this.repo = repo;
         this.favoriteRepository = favoriteRepository;
-        this.notificationService = notificationService; // เพิ่ม
-        this.notificationQueueRepository = notificationQueueRepository; // เพิ่ม
-        this.userRepository = userRepository; // เพิ่ม
+        this.notificationService = notificationService;
+        this.notificationQueueRepository = notificationQueueRepository;
+        this.userRepository = userRepository;
+        this.eventFeedbackRepository = eventFeedbackRepository;
+        this.feedbackService = feedbackService;
     }
 
     public List<Event> getAll() {
-        // ⭐️ [FIX 3] ADD CALL to helper
         return updateEventImageUrls(repo.findAll());
     }
 
@@ -68,7 +69,6 @@ public class EventService {
      * ดึงข้อมูลเฉพาะ Events ที่เป็น Public เท่านั้น
      */
     public List<Event> getPublicEvents() {
-        // ⭐️ [FIX 3] ADD CALL to helper
         return updateEventImageUrls(repo.findByIsPublicTrue());
     }
 
@@ -78,8 +78,7 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCards() {
         return repo.findByIsPublicTrue().stream()
-                // ⭐️ [FIX 3] Use helper for DTO
-                .map(this::toCardDTOWithAbsoluteUrl)
+                .map(this::buildEventCardDTOWithStats)
                 .collect(Collectors.toList());
     }
 
@@ -89,8 +88,7 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCardsForAdmin() {
         return repo.findAll().stream()
-                // ⭐️ [FIX 3] Use helper for DTO
-                .map(this::toCardDTOWithAbsoluteUrl)
+                .map(this::buildEventCardDTOWithStats)
                 .collect(Collectors.toList());
     }
 
@@ -101,8 +99,7 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCardsForAdminByFaculty(String faculty) {
         return repo.findByCreatedByFaculty(faculty).stream()
-                // ⭐️ [FIX 3] Use helper for DTO
-                .map(this::toCardDTOWithAbsoluteUrl)
+                .map(this::buildEventCardDTOWithStats)
                 .collect(Collectors.toList());
     }
 
@@ -112,8 +109,7 @@ public class EventService {
      */
     public List<EventCardDTO> getAllCardsForAdminByEmail(String adminEmail) {
         return repo.findByCreatedByAdmin(adminEmail).stream()
-                // ⭐️ [FIX 3] Use helper for DTO
-                .map(this::toCardDTOWithAbsoluteUrl)
+                .map(this::buildEventCardDTOWithStats)
                 .collect(Collectors.toList());
     }
 
@@ -122,38 +118,51 @@ public class EventService {
      * @param userId - ID ของ user เพื่อเช็คว่า favorite หรือยัง
      */
     public List<EventCardDTO> getAllCardsForUser(Long userId) {
-        List<Event> events = repo.findByIsPublicTrue();
+        List<Event> events = repo.findByIsPublicTrue(); // ดึงเฉพาะ Public Events
         List<Favorite> favorites = favoriteRepository.findByUserId(userId);
 
         return events.stream()
                 .map(event -> {
+                    // ใส่สถิติ + absolute image URL ก่อน
+                    EventCardDTO dto = buildEventCardDTOWithStats(event);
 
-                    updateEventImageUrl(event); // ⭐️ [FIX] ต้องเพิ่มบรรทัดนี้
-
-                    EventCardDTO dto = new EventCardDTO(event);
                     // เช็คว่า user favorite กิจกรรมนี้หรือยัง
                     boolean isFavorited = favorites.stream()
                             .anyMatch(fav -> fav.getEventId().equals(event.getId()));
                     dto.setIsFavorited(isFavorited);
+
                     return dto;
                 })
                 .collect(Collectors.toList());
     }
 
+    /**
+     * ดึง Event เดียว + เพิ่ม viewCount และแปลง imageUrl ให้เป็น absolute
+     */
     public Event getOne(Long id) {
         Event event = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
 
-        updateEventImageUrl(event); // ⭐️ [FIX] ต้องเพิ่มบรรทัดนี้
+        // ⭐ เพิ่มการนับ view
+        Integer currentViews = event.getViewCount();
+        if (currentViews == null) {
+            currentViews = 0;
+        }
+        event.setViewCount(currentViews + 1);
 
-        return event;
+        Event saved = repo.save(event);
+
+        // ⭐ อัปเดต imageUrl ให้เป็น absolute
+        updateEventImageUrl(saved);
+
+        return saved;
     }
 
     public Event create(Event e) {
         logger.info("Creating new event: {}", e.getTitle());
         Event saved = repo.save(e);
         logger.info("Event created with ID: {}", saved.getId());
-        updateEventImageUrl(saved); // ⭐️ [FIX 3] ADD CALL to helper
+        updateEventImageUrl(saved);
         return saved;
     }
 
@@ -187,20 +196,18 @@ public class EventService {
             // 1. ค้นหาทุกคนที่ Favorite กิจกรรมนี้
             List<NotificationQueue> subscribers = notificationQueueRepository.findByEventId(updated.getId());
 
-
             // 2. วนลูปส่ง Real-time notification
             for (NotificationQueue nq : subscribers) {
                 User user = userRepository.findById(nq.getUserId()).orElse(null);
 
                 if (user != null && user.getEmail() != null) {
                     notificationService.sendRealTimeUpdateNotification(user, updated);
-
                 }
             }
             logger.info("Sent {} update notifications.", subscribers.size());
         }
 
-        updateEventImageUrl(updated); // ⭐️ [FIX 3] ADD CALL to helper
+        updateEventImageUrl(updated);
         return updated;
     }
 
@@ -213,14 +220,21 @@ public class EventService {
         logger.info("Event deleted successfully: {}", id);
     }
 
-    public List<Event> search(String keyword, String category, String location, String organizer, LocalDate startTime, LocalDate endTime, String sortBy) {
+    public List<Event> search(String keyword, String category, String location, String organizer,
+                              LocalDate startTime, LocalDate endTime, String sortBy) {
 
         Specification<Event> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (keyword != null && !keyword.isEmpty()) {
-                Predicate titleLike = criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%" + keyword.toLowerCase() + "%");
-                Predicate descriptionLike = criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), "%" + keyword.toLowerCase() + "%");
+                var titleLike = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("title")),
+                        "%" + keyword.toLowerCase() + "%"
+                );
+                var descriptionLike = criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("description")),
+                        "%" + keyword.toLowerCase() + "%"
+                );
                 predicates.add(criteriaBuilder.or(titleLike, descriptionLike));
             }
 
@@ -229,7 +243,10 @@ public class EventService {
             }
 
             if (location != null && !location.isEmpty()) {
-                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("location")), location.toLowerCase()));
+                predicates.add(criteriaBuilder.equal(
+                        criteriaBuilder.lower(root.get("location")),
+                        location.toLowerCase()
+                ));
             }
 
             if (organizer != null && !organizer.isEmpty()) {
@@ -238,15 +255,19 @@ public class EventService {
 
             if (startTime != null && endTime != null) {
                 // ค้นหากิจกรรมที่ *คาบเกี่ยว* กับช่วงเวลาที่เลือก
-                Predicate overlapStart = criteriaBuilder.lessThanOrEqualTo(root.get("startTime"), endTime.atTime(LocalTime.MAX));
-                Predicate overlapEnd = criteriaBuilder.greaterThanOrEqualTo(root.get("endTime"), startTime.atStartOfDay());
+                var overlapStart = criteriaBuilder.lessThanOrEqualTo(
+                        root.get("startTime"), endTime.atTime(LocalTime.MAX));
+                var overlapEnd = criteriaBuilder.greaterThanOrEqualTo(
+                        root.get("endTime"), startTime.atStartOfDay());
                 predicates.add(criteriaBuilder.and(overlapStart, overlapEnd));
 
             } else if (startTime != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("endTime"), startTime.atStartOfDay()));
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(
+                        root.get("endTime"), startTime.atStartOfDay()));
 
             } else if (endTime != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startTime"), endTime.atTime(LocalTime.MAX)));
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(
+                        root.get("startTime"), endTime.atTime(LocalTime.MAX)));
             }
 
             // ⭐️ เพิ่มเงื่อนไข: ดึงเฉพาะ isPublic = true
@@ -255,51 +276,92 @@ public class EventService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
+        String sortKey = (sortBy == null) ? "" : sortBy.toLowerCase();
 
         // เรียงลำดับ
-        Sort sort = switch (sortBy.toLowerCase()) { // ⭐️ เพิ่ม .toLowerCase() เพื่อความปลอดภัย
-            // ⭐️ [แก้ไข] เปลี่ยน "featured" เป็น "popular"
+        Sort sort = switch (sortKey) {
             case "popular" -> // "เรื่องเด่น"  คือมีคนเข้าร่วมเยอะสุด
                     Sort.by(Sort.Direction.DESC, "currentParticipants");
 
-            // ⭐️ [แก้ไข] เปลี่ยน "newest" เป็น "new"
-            case "new" -> // "กิจกรรมใหม่"  กิจกรรมที่กำลังจะเริ่มเร็วๆ นี้ (เอา DESC เพื่อให้วันที่ล่าสุดขึ้นก่อน)
+            // ⭐️ [แก้ไข] ใช้ key "new" (front ส่งมาเป็น new)
+            case "new" -> // "กิจกรรมใหม่"  กิจกรรมที่กำลังจะเริ่มเร็วๆ นี้
                     Sort.by(Sort.Direction.DESC, "startTime");
 
-            case "closingsoon" -> // "ใกล้ปิดรับสมัคร"  กิจกรรมที่กำลังจะจบ (endTime) เร็วที่สุด
+            // ⭐️ [แก้ไข] ใช้ key "closingsoon" (ตัวเล็กหมด เพราะเรา toLowerCase แล้ว)
+            case "closingsoon" -> // "ใกล้ปิดรับสมัคร"
                     Sort.by(Sort.Direction.ASC, "endTime");
 
             default ->
-                // ค่าเริ่มต้น เราเรียงตามวันที่เริ่มกิจกรรม (ASC คือเก่าไปใหม่)
                     Sort.by(Sort.Direction.ASC, "startTime");
         };
 
-        // ส่ง Specification ไปให้ Repository ค้นหา
         List<Event> events = repo.findAll(spec, sort);
-        return updateEventImageUrls(events); // ⭐️ [FIX 3] ADD CALL to helper (นี่คือจุดที่สำคัญที่สุดสำหรับหน้า Activities)
+        return updateEventImageUrls(events);
     }
 
-
-    // ⭐️ [FIX 4] ADD HELPER METHODS (เพิ่ม 3 เมธอดนี้ต่อท้ายคลาส)
+    // ================== Helper ต่าง ๆ ==================
 
     /**
-     * Helper method to convert relative image URL to absolute URL.
-     * (เช่น /api/images/file.png -> http://localhost:8080/api/images/file.png)
+     * เมธอดช่วยสร้าง DTO ที่มีสถิติครบถ้วน (favoriteCount, reviewCount, rating, viewCount)
+     * พร้อมอัปเดต imageUrl ให้เป็น absolute
+     */
+    private EventCardDTO buildEventCardDTOWithStats(Event event) {
+        // อัปเดต imageUrl ก่อน
+        updateEventImageUrl(event);
+
+        EventCardDTO dto = new EventCardDTO(event);
+
+        Long eventId = event.getId();
+        if (eventId == null) {
+            // ป้องกัน NPE ตอนสร้าง event ใหม่ที่ยังไม่มี ID
+            dto.setFavoriteCount(0L);
+            dto.setReviewCount(0L);
+            dto.setRating(0.0);
+            if (dto.getViewCount() == null) {
+                dto.setViewCount(0);
+            }
+            return dto;
+        }
+
+        // นับ favorite
+        long favoriteCount = favoriteRepository.countByEventId(eventId);
+
+        // นับจำนวน review
+        long reviewCount = eventFeedbackRepository.countByEventId(eventId);
+
+        // ค่าเฉลี่ย rating
+        Double rating = feedbackService.getAverageRating(eventId);
+        if (rating == null) {
+            rating = 0.0;
+        }
+
+        dto.setFavoriteCount(favoriteCount);
+        dto.setReviewCount(reviewCount);
+        dto.setRating(rating);
+
+        // viewCount ดึงมาจาก Event (ถ้ามี)
+        if (dto.getViewCount() == null) {
+            dto.setViewCount(event.getViewCount() != null ? event.getViewCount() : 0);
+        }
+
+        return dto;
+    }
+
+    /**
+     * Helper: แปลง imageUrl ของ event เดียวให้เป็น absolute URL
      */
     private void updateEventImageUrl(Event event) {
         if (event == null) return;
         String imageUrl = event.getImageUrl();
+
         // เช็คว่า imageUrl ไม่ null, ไม่ใช่ "http" (เผื่อเป็น URL เต็มอยู่แล้ว), และไม่ใช่ "data:image" (เผื่อเป็น Base64)
         if (imageUrl != null && !imageUrl.startsWith("http") && !imageUrl.startsWith("data:image")) {
-
-            // ⭐️⭐️⭐️ [นี่คือจุดที่แก้ไข] ⭐️⭐️⭐️
-            // เติม "/" เข้าไปคั่นกลางระหว่าง baseUrl และ imageUrl
             event.setImageUrl(baseUrl + "/" + imageUrl);
         }
     }
 
     /**
-     * Helper method สำหรับ List
+     * Helper: สำหรับ List<Event>
      */
     private List<Event> updateEventImageUrls(List<Event> events) {
         events.forEach(this::updateEventImageUrl);
@@ -307,8 +369,9 @@ public class EventService {
     }
 
     /**
-     * Helper method สำหรับ DTO
+     * Helper: เผื่ออนาคตอยากสร้าง DTO แบบง่าย ๆ แต่อยากได้ absolute URL ด้วย
      */
+    @SuppressWarnings("unused")
     private EventCardDTO toCardDTOWithAbsoluteUrl(Event event) {
         updateEventImageUrl(event);
         return new EventCardDTO(event);
