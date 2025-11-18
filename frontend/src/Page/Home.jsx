@@ -75,15 +75,27 @@ export default function Home({ navigate, auth, data, requireLogin }) {
     }
   };
 
+  const reviewCandidates = useMemo(() => {
+    const map = new Map();
+    [...(favorites ?? []), ...(events ?? [])].forEach((event) => {
+      if (!event || event.id == null) return;
+      const key = event.id.toString();
+      if (!map.has(key)) {
+        map.set(key, event);
+      }
+    });
+    return Array.from(map.values());
+  }, [favorites, events]);
+
   useEffect(() => {
     if (!auth?.loggedIn) {
       setReviewStatus({});
       return;
     }
-    const endedFavorites =
-      (favorites ?? []).filter((event) => hasEventEnded(event)) ?? [];
-    const toCheck = endedFavorites.filter(
-      (event) => event?.id && !reviewStatus[event.id]
+    const endedEvents =
+      (reviewCandidates ?? []).filter((event) => hasEventEnded(event)) ?? [];
+    const toCheck = endedEvents.filter(
+      (event) => event?.id && !reviewStatus[event.id?.toString?.() ?? event.id]
     );
     if (toCheck.length === 0) return;
 
@@ -94,18 +106,24 @@ export default function Home({ navigate, auth, data, requireLogin }) {
           try {
             const feedback = await getMyFeedback(event.id);
             return [
-              event.id,
+              event.id?.toString?.() ?? event.id,
               { canReview: true, hasReview: Boolean(feedback) },
             ];
           } catch (err) {
             if (err?.code === 403 || err?.code === 401) {
-              return [event.id, { canReview: false, hasReview: false }];
+              return [
+                event.id?.toString?.() ?? event.id,
+                { canReview: false, hasReview: false },
+              ];
             }
             console.error(
               `Failed to check review status for event ${event.id}:`,
               err
             );
-            return [event.id, { canReview: false, hasReview: false }];
+            return [
+              event.id?.toString?.() ?? event.id,
+              { canReview: false, hasReview: false },
+            ];
           }
         })
       );
@@ -117,17 +135,17 @@ export default function Home({ navigate, auth, data, requireLogin }) {
     return () => {
       cancelled = true;
     };
-  }, [auth?.loggedIn, favorites, reviewStatus]);
+  }, [auth?.loggedIn, reviewCandidates, reviewStatus]);
 
-  const reviewableFavorites = useMemo(() => {
+  const reviewableEvents = useMemo(() => {
     if (!auth?.loggedIn) return [];
-    return (favorites ?? []).filter((event) => {
+    return (reviewCandidates ?? []).filter((event) => {
       if (!hasEventEnded(event)) return false;
-      const status = reviewStatus[event.id];
+      const status = reviewStatus[event.id?.toString?.() ?? event.id];
       if (!status) return false;
       return status.canReview && !status.hasReview;
     });
-  }, [auth?.loggedIn, favorites, reviewStatus]);
+  }, [auth?.loggedIn, reviewCandidates, reviewStatus]);
 
   const goToSearch = (query = "") => {
     // Navigate ไปหน้า Activities แล้วค้นหาที่นั่น
@@ -214,81 +232,82 @@ export default function Home({ navigate, auth, data, requireLogin }) {
               period={data.hero?.period}
               onSearch={goToSearch}
             />
-
-
-              {auth.loggedIn && favorites.length > 0 && (
-                <>
-                  {/* Section 1: Liked Activities */}
-                  <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">กิจกรรมที่คุณถูกใจ</p>
-                        <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
-                          บันทึกไว้สำหรับติดตาม ภายหลัง
-                        </h2>
-                      </div>
+            {auth.loggedIn && (
+              <>
+                {/* Section 1: Liked Activities */}
+                <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">กิจกรรมที่คุณถูกใจ</p>
+                      <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
+                        บันทึกไว้สำหรับติดตาม ภายหลัง
+                      </h2>
                     </div>
+                  </div>
 
-                    <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {favorites
-                        .filter(Boolean)
-                        .sort((a, b) => {
-                          const dateA = new Date(a.date ?? a.startTime ?? 0).getTime();
-                          const dateB = new Date(b.date ?? b.startTime ?? 0).getTime();
-                          return dateA - dateB;
-                        })
-                        .slice(0, 3)
-                        .map((event) => (
-                          <EventCard
-                            key={`fav-${event.id}`}
-                            e={{ ...event, liked: true }}
-                            loggedIn
-                            onToggle={onToggleLike}
-                            onRequireLogin={requireLogin}
-                            onOpen={openEventDetail}
-                          />
-                        ))}
-                      {favorites.filter(Boolean).length === 0 && (
-                        <div className="rounded-[20px] border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
-                          ยังไม่มีรายการโปรดที่พร้อมแสดง
-                        </div>
-                      )}
+                  <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {favorites
+                      .filter(Boolean)
+                      .sort((a, b) => {
+                        const dateA = new Date(a.date ?? a.startTime ?? 0).getTime();
+                        const dateB = new Date(b.date ?? b.startTime ?? 0).getTime();
+                        return dateA - dateB;
+                      })
+                      .slice(0, 3)
+                      .map((event) => (
+                        <EventCard
+                          key={`fav-${event.id}`}
+                          e={{ ...event, liked: true }}
+                          loggedIn
+                          onToggle={onToggleLike}
+                          onRequireLogin={requireLogin}
+                          onOpen={openEventDetail}
+                        />
+                      ))}
+                    {favorites.filter(Boolean).length === 0 && (
+                      <div className="rounded-[20px] border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                        ยังไม่มีรายการโปรดที่พร้อมแสดง
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Section 2: Pending Review Activities */}
+                <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">กิจกรรมที่รอคุณให้คะแนน</p>
+                      <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
+                        ให้คะแนนและรีวิวกิจกรรมที่เข้าร่วมแล้ว
+                      </h2>
                     </div>
-                  </section>
+                  </div>
 
-                  {/* Section 2: Pending Review Activities */}
-                  {reviewableFavorites.length > 0 && (
-                    <section className="rounded-[28px] border border-black/5 bg-white px-6 py-8 shadow-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">กิจกรรมที่รอคุณให้คะแนน</p>
-                          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900">
-                            ให้คะแนนและรีวิวกิจกรรมที่เข้าร่วมแล้ว
-                          </h2>
-                        </div>
+                  <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {reviewableEvents
+                      .sort((a, b) => {
+                        const dateA = new Date(a.date ?? a.startTime ?? 0).getTime();
+                        const dateB = new Date(b.date ?? b.startTime ?? 0).getTime();
+                        return dateA - dateB;
+                      })
+                      .slice(0, 3)
+                      .map((event) => (
+                        <ReviewPendingCard
+                          key={`review-${event.id}`}
+                          e={{ ...event, liked: true }}
+                          loggedIn
+                          onOpen={openEventDetail}
+                        />
+                      ))}
+                    {reviewableEvents.length === 0 && (
+                      <div className="rounded-[20px] border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                        ยังไม่มีกิจกรรมที่รอรีวิว
                       </div>
-
-                      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {reviewableFavorites
-                          .sort((a, b) => {
-                            const dateA = new Date(a.date ?? 0).getTime();
-                            const dateB = new Date(b.date ?? 0).getTime();
-                            return dateA - dateB;
-                          })
-                          .slice(0, 3)
-                          .map((event) => (
-                            <ReviewPendingCard
-                              key={`review-${event.id}`}
-                              e={{ ...event, liked: true }}
-                              loggedIn
-                              onOpen={openEventDetail}
-                            />
-                          ))}
-                      </div>
-                    </section>
-                  )}
-                </>
-              )}
+                    )}
+                  </div>
+                </section>
+              </>
+            )}
 
             <EventsSection
             list={events}
