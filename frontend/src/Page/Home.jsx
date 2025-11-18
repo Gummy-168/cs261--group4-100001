@@ -231,14 +231,10 @@ export default function Home({ navigate, auth, data, requireLogin }) {
 
                     <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                       {favorites
-                        .filter(event => {
-                          // Show only: liked AND not ended
-                          const hasEnded = event.endTime && new Date(event.endTime).getTime() < Date.now();
-                          return !hasEnded;
-                        })
+                        .filter(Boolean)
                         .sort((a, b) => {
-                          const dateA = new Date(a.date ?? 0).getTime();
-                          const dateB = new Date(b.date ?? 0).getTime();
+                          const dateA = new Date(a.date ?? a.startTime ?? 0).getTime();
+                          const dateB = new Date(b.date ?? b.startTime ?? 0).getTime();
                           return dateA - dateB;
                         })
                         .slice(0, 3)
@@ -252,6 +248,11 @@ export default function Home({ navigate, auth, data, requireLogin }) {
                             onOpen={openEventDetail}
                           />
                         ))}
+                      {favorites.filter(Boolean).length === 0 && (
+                        <div className="rounded-[20px] border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+                          ยังไม่มีรายการโปรดที่พร้อมแสดง
+                        </div>
+                      )}
                     </div>
                   </section>
 

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { updateFavoriteEvent } from "../lib/api";
 
+const toKey = (value) => (value == null ? "" : value.toString());
+
 export default function useEventFavorites(data = {}, auth, requireLogin) {
   const [events, setEvents] = useState(data.events ?? []);
   const [favorites, setFavorites] = useState(data.favoriteEvents ?? []);
@@ -9,18 +11,18 @@ export default function useEventFavorites(data = {}, auth, requireLogin) {
   const [togglingIds, setTogglingIds] = useState(new Set()); 
 
   useEffect(() => {
-    const favoriteSet = new Set((data.favoriteEvents ?? []).map((event) => event.id));
+    const favoriteSet = new Set((data.favoriteEvents ?? []).map((event) => toKey(event.id)));
     setFavorites(data.favoriteEvents ?? []);
     setEvents(
       (data.events ?? []).map((event) => ({
         ...event,
-        liked: favoriteSet.has(event.id) ? true : Boolean(event.liked),
+        liked: favoriteSet.has(toKey(event.id)) ? true : Boolean(event.liked),
       }))
     );
   }, [data.events, data.favoriteEvents]);
 
   const favoriteIds = useMemo(
-    () => new Set((favorites ?? []).map((event) => event.id)),
+    () => new Set((favorites ?? []).map((event) => toKey(event.id))),
     [favorites]
   );
 
@@ -56,15 +58,16 @@ export default function useEventFavorites(data = {}, auth, requireLogin) {
       const prevEvents = events.map((event) => ({ ...event }));
       const prevFavorites = favorites.map((event) => ({ ...event }));
 
-      const targetFromEvents = events.find((event) => event.id === id);
-      const target = targetFromEvents ?? favorites.find((event) => event.id === id);
+      const key = toKey(id);
+      const targetFromEvents = events.find((event) => toKey(event.id) === key);
+      const target = targetFromEvents ?? favorites.find((event) => toKey(event.id) === key);
 
       setEvents((prev) =>
-        prev.map((event) => (event.id === id ? { ...event, liked: state } : event))
+        prev.map((event) => (toKey(event.id) === key ? { ...event, liked: state } : event))
       );
 
       setFavorites((prev) => {
-        const filtered = prev.filter((event) => event.id !== id);
+        const filtered = prev.filter((event) => toKey(event.id) !== key);
         if (state && target) {
           return [...filtered, { ...target, liked: true }];
         }

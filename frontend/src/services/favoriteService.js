@@ -9,10 +9,14 @@ import axiosInstance from '../lib/axiosInstance';
 export const addFavorite = async (eventId, userId) => {
   try {
     if (!userId) throw new Error('User ID is required');
-    const response = await axiosInstance.post('/favorites', {
+    const payload = {
       userId,
-      eventId,
-    });
+      activityId: eventId,
+    };
+    if (eventId != null) {
+      payload.eventId = eventId;
+    }
+    const response = await axiosInstance.post('/favorites', payload);
     return response.data;
   } catch (error) {
     console.error('Error adding favorite:', error);
@@ -29,9 +33,8 @@ export const addFavorite = async (eventId, userId) => {
 export const removeFavorite = async (eventId, userId) => {
   try {
     if (!userId) throw new Error('User ID is required');
-    await axiosInstance.delete('/favorites', {
-      data: { userId, eventId },
-    });
+    if (eventId == null) throw new Error('Event ID is required');
+    await axiosInstance.delete(`/favorites/${eventId}`);
   } catch (error) {
     console.error('Error removing favorite:', error);
     throw new Error(error.message || 'ไม่สามารถลบกิจกรรมออกจากรายการโปรดได้');
