@@ -3,6 +3,12 @@ import { useMemo } from "react";
 export default function EventCard({ e, loggedIn, onToggle, onRequireLogin, onOpen }) {
   const href = `/events/${e.id}`;
   const liked = Boolean(loggedIn && e.liked);
+  const favoriteCount =
+    typeof e.favoriteCount === "number"
+      ? e.favoriteCount
+      : typeof e.likes === "number"
+      ? e.likes
+      : 0;
 
   const formattedDate = useMemo(() => {
     if (!e.date) return "";
@@ -53,10 +59,11 @@ export default function EventCard({ e, loggedIn, onToggle, onRequireLogin, onOpe
             </div>
           )}
         </div>
+        <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
         <button
           type="button"
           aria-label={liked ? "เลิกบันทึกกิจกรรม" : "บันทึกกิจกรรม"}
-          className={`absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white/95 text-red-500 transition hover:bg-white ${
+          className={`inline-flex h-10 w-10 items-center justify-center rounded-full border bg-white/95 text-red-500 transition hover:bg-white ${
             liked ? "border-red-200 text-red-600" : "border-black/10 text-gray-500"
           }`}
           onClick={onHeart}
@@ -65,6 +72,20 @@ export default function EventCard({ e, loggedIn, onToggle, onRequireLogin, onOpe
             <path d="M12 21s-7-4.35-9.5-7.5C.5 10 2.5 6 6 6c2 0 3.5 1 4.5 2 1-1 2.5-2 4.5-2 3.5 0 5.5 4 3.5 7.5S12 21 12 21z" />
           </svg>
         </button>
+        {favoriteCount != null && (
+          <div className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm border border-black/5">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-3.5 w-3.5"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 21s-7-4.35-9.5-7.5C.5 10 2.5 6 6 6c2 0 3.5 1 4.5 2 1-1 2.5-2 4.5-2 3.5 0 5.5 4 3.5 7.5S12 21 12 21z" />
+            </svg>
+            <span>{favoriteCount}</span>
+          </div>
+        )}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col">

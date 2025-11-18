@@ -64,11 +64,17 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
   const [liked, setLiked] = useState(Boolean(event?.liked));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [favoriteCount, setFavoriteCount] = useState(() => {
+    const base = event?.favoriteCount ?? event?.likes;
+    return typeof base === "number" ? base : 0;
+  });
 
   useEffect(() => {
     setLiked(Boolean(event?.liked));
     setError(null);
-  }, [event?.id, event?.liked]);
+    const base = event?.favoriteCount ?? event?.likes;
+    setFavoriteCount(typeof base === "number" ? base : 0);
+  }, [event?.id, event?.liked, event?.favoriteCount, event?.likes]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -103,9 +109,12 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
     const next = !liked;
     setLiked(next);
     setSaving(true);
+    const delta = next ? 1 : -1;
+    setFavoriteCount((prev) => Math.max(0, prev + delta));
     const result = await updateFavoriteEvent(event.id, next, auth?.token, userId);
     if (!result.ok) {
       setLiked(!next);
+      setFavoriteCount((prev) => Math.max(0, prev - delta));
       setError("ไม่สามารถบันทึกรายการโปรดได้ กรุณาลองใหม่อีกครั้ง");
     } else {
       setError(null);
@@ -158,19 +167,27 @@ export default function EventDetailPage({ navigate, auth, data, eventId, require
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={onToggleFavorite}
-                  disabled={saving}
-                  className={`absolute right-6 top-6 inline-flex h-12 w-12 items-center justify-center rounded-full border bg-white/95 text-red-500 shadow-sm transition hover:bg-white ${
-                    liked ? "border-red-200 text-red-600" : "border-black/10 text-gray-500"
-                  } disabled:cursor-not-allowed disabled:opacity-80`}
-                  aria-label={liked ? "นำออกจากกิจกรรมที่ถูกใจ" : "เพิ่มในกิจกรรมที่ถูกใจ"}
-                >
-                  <svg viewBox="0 0 24 24" className="h-[20px] w-[20px]" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
-                    <path d="M12 21s-7-4.35-9.5-7.5C.5 10 2.5 6 6 6c2 0 3.5 1 4.5 2 1-1 2.5-2 4.5-2 3.5 0 5.5 4 3.5 7.5S12 21 12 21z" />
-                  </svg>
-                </button>
+                <div className="absolute right-6 top-6 flex flex-col items-end gap-2">
+                  <button
+                    type="button"
+                    onClick={onToggleFavorite}
+                    disabled={saving}
+                    className={`inline-flex h-12 w-12 items-center justify-center rounded-full border bg-white/95 text-red-500 shadow-sm transition hover:bg-white ${
+                      liked ? "border-red-200 text-red-600" : "border-black/10 text-gray-500"
+                    } disabled:cursor-not-allowed disabled:opacity-80`}
+                    aria-label={liked ? "นำออกจากกิจกรรมที่ถูกใจ" : "เพิ่มในกิจกรรมที่ถูกใจ"}
+                  >
+                    <svg viewBox="0 0 24 24" className="h-[20px] w-[20px]" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8">
+                      <path d="M12 21s-7-4.35-9.5-7.5C.5 10 2.5 6 6 6c2 0 3.5 1 4.5 2 1-1 2.5-2 4.5-2 3.5 0 5.5 4 3.5 7.5S12 21 12 21z" />
+                    </svg>
+                  </button>
+                  <div className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm border border-black/5">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+                      <path d="M12 21s-7-4.35-9.5-7.5C.5 10 2.5 6 6 6c2 0 3.5 1 4.5 2 1-1 2.5-2 4.5-2 3.5 0 5.5 4 3.5 7.5S12 21 12 21z" />
+                    </svg>
+                    <span>{favoriteCount}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-col gap-8 px-6 py-8 md:px-10 md:py-12">

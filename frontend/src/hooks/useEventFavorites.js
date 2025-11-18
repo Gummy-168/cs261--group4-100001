@@ -3,6 +3,25 @@ import { updateFavoriteEvent } from "../lib/api";
 
 const toKey = (value) => (value == null ? "" : value.toString());
 
+const applyFavoriteState = (event, nextLiked) => {
+  if (!event) return event;
+  const wasLiked = Boolean(event.liked);
+  if (wasLiked === nextLiked) {
+    return { ...event, liked: nextLiked };
+  }
+  const delta = nextLiked ? 1 : -1;
+  const next = { ...event, liked: nextLiked };
+  if (typeof event.favoriteCount === "number") {
+    next.favoriteCount = Math.max(0, event.favoriteCount + delta);
+  } else if (typeof event.likes === "number") {
+    next.likes = Math.max(0, event.likes + delta);
+  } else {
+    const base = event.favoriteCount ?? event.likes ?? 0;
+    next.favoriteCount = Math.max(0, base + delta);
+  }
+  return next;
+};
+
 export default function useEventFavorites(data = {}, auth, requireLogin) {
   const [events, setEvents] = useState(data.events ?? []);
   const [favorites, setFavorites] = useState(data.favoriteEvents ?? []);
@@ -63,13 +82,13 @@ export default function useEventFavorites(data = {}, auth, requireLogin) {
       const target = targetFromEvents ?? favorites.find((event) => toKey(event.id) === key);
 
       setEvents((prev) =>
-        prev.map((event) => (toKey(event.id) === key ? { ...event, liked: state } : event))
+        prev.map((event) => (toKey(event.id) === key ? applyFavoriteState(event, state) : event))
       );
 
       setFavorites((prev) => {
         const filtered = prev.filter((event) => toKey(event.id) !== key);
         if (state && target) {
-          return [...filtered, { ...target, liked: true }];
+          return [...filtered, applyFavoriteState(target, true)];
         }
         return filtered;
       });
